@@ -1,11 +1,12 @@
 #include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include "get_next_line.h"
-#include "libft.h"
+#include "get_next_line.c"
+#include "get_next_line_utils.c"
 
 int	main(int argc, char *argv[])
 {
