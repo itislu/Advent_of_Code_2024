@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "get_next_line.h"
-#include "get_next_line.c"
-#include "get_next_line_utils.c"
+#include "../utils/get_next_line.h"
+#include "../utils/get_next_line.c"
+#include "../utils/get_next_line_utils.c"
 
 int	main(int argc, char *argv[])
 {
