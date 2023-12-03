@@ -1,4 +1,4 @@
-#include "2.h"
+#include "02.h"
 
 int	max_red = 12;
 int	max_green = 13;
