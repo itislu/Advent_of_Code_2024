@@ -1,12 +1,4 @@
-#include <ctype.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include "../utils/get_next_line.h"
-#include "../utils/get_next_line.c"
-#include "../utils/get_next_line_utils.c"
+#include "1.h"
 
 int	main(int argc, char *argv[])
 {

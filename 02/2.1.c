@@ -1,13 +1,4 @@
-#include <ctype.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include "../utils/get_next_line.h"
-#include "../utils/get_next_line.c"
-#include "../utils/get_next_line_utils.c"
+#include "2.h"
 
 int	max_red = 12;
 int	max_green = 13;
