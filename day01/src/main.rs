@@ -1,7 +1,7 @@
 use utils::input;
 
 fn main() {
-    let input = input::read_file(1, false);
+    let input = input::read_file("day01");
     let res = similarity_score(input);
     println!("{}", res);
 }
@@ -31,7 +31,7 @@ mod test {
 
     #[test]
     fn test_input() {
-        let input = input::read_file(1, true);
+        let input = input::read_file("day01_example");
         let res = similarity_score(input);
         assert_eq!(res, 11);
     }
