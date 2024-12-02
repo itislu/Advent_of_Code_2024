@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["day01", "utils"]
+members = ["day01", "day02", "utils"]
 
 [workspace.dependencies]
 utils = { path = "utils" }
