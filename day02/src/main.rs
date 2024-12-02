@@ -1,9 +1,7 @@
 use utils::input;
 
-const DAY: u32 = 2;
-
 fn main() {
-    let input = input::read_file(&format!("day{:02}.txt", DAY));
+    let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
     println!("exercise 2: {}", exercise2(&input));
 }
@@ -64,14 +62,14 @@ mod test {
 
     #[test]
     fn test_ex1() {
-        let input = input::read_file(&format!("day{:02}_example.txt", DAY));
+        let input = input::read_example();
         let res = exercise1(&input);
         assert_eq!(res, 2);
     }
 
     #[test]
     fn test_ex2() {
-        let input = input::read_file(&format!("day{:02}_example.txt", DAY));
+        let input = input::read_example();
         let res = exercise2(&input);
         assert_eq!(res, 4);
     }
