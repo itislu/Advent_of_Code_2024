@@ -4,10 +4,12 @@ pub mod input {
     use std::path;
 
     fn read_file(filename: &str) -> String {
-        let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-        let path_str = format!("{}/{}", dir, filename);
-        let path = path::Path::new(&path_str);
-        fs::read_to_string(path).expect(&format!("Failed to read file {}", path.display()))
+        let dir = match env::var("CARGO_MANIFEST_DIR") {
+            Ok(dir) => path::PathBuf::from(dir),
+            Err(_) => env::current_dir().expect("Failed to get current directory"),
+        };
+        let path = dir.join(filename);
+        fs::read_to_string(&path).expect(&format!("Failed to read file {}", path.display()))
     }
 
     pub fn read_input() -> String {
