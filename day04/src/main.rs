@@ -12,25 +12,29 @@ fn exercise1(input: &String) -> usize {
     let grid: Grid = Grid::new(input);
 
     for direction in Direction::iter() {
-        for line in grid.iter_direction(direction) {
-            res += line.matches("XMAS").count();
+        println!("Direction::{:?}:", direction);
+        for (i, line) in grid.iter_direction(direction).enumerate() {
+            let tmp = line.matches("XMAS").count();
+            println!("    line {} contains {} matches", i, tmp);
+            res += tmp;
         }
+        println!("res after Direction::{:?}: {}", direction, res);
     }
 
     res
 }
 
 // Direction of strings in Grid
-#[derive(strum_macros::EnumIter)]
+#[derive(Clone, Copy, Debug, strum_macros::EnumIter)]
 enum Direction {
     Right,
     Left,
     Down,
     Up,
     DiagonalDownRight,
+    DiagonalUpLeft,
     DiagonalDownLeft,
     DiagonalUpRight,
-    DiagonalUpLeft,
 }
 
 struct Grid {
@@ -139,8 +143,8 @@ impl<'a> Iterator for GridIterator<'a> {
         match self.direction {
             Direction::Left
             | Direction::Up
-            | Direction::DiagonalUpRight
-            | Direction::DiagonalUpLeft => {
+            | Direction::DiagonalUpLeft
+            | Direction::DiagonalUpRight => {
                 res = res.chars().rev().collect();
             }
             _ => {}
