@@ -24,9 +24,13 @@ struct Grid {
     matrix: Vec<Vec<char>>,
     height: usize,
     width: usize,
-    direction: Direction,
+}
+
+struct GridIterator<'a> {
+    grid: &'a Grid,
     current_row: usize,
     current_col: usize,
+    direction: Direction,
 }
 
 impl Grid {
@@ -38,33 +42,31 @@ impl Grid {
             matrix,
             height,
             width,
-            direction: Direction::Right,
-            current_row: 0,
-            current_col: 0,
         }
     }
 
-    fn with_direction(input: &String, direction: Direction) -> Self {
-        let matrix: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
-        let height = matrix.len();
-        let width = matrix[0].len();
+    fn iter_direction(&self, direction: Direction) -> GridIterator {
+        GridIterator::new(self, direction)
+    }
+}
+
+impl<'a> GridIterator<'a> {
+    fn new(grid: &'a Grid, direction: Direction) -> Self {
         let (current_row, current_col) = match direction {
             Direction::Right | Direction::Left | Direction::Down | Direction::Up => (0, 0),
-            Direction::DiagonalDownRight | Direction::DiagonalUpLeft => (0, width - 1),
+            Direction::DiagonalDownRight | Direction::DiagonalUpLeft => (0, grid.width - 1),
             Direction::DiagonalUpRight | Direction::DiagonalDownLeft => (0, 0),
         };
-        Grid {
-            matrix,
-            height,
-            width,
-            direction,
+        GridIterator {
+            grid,
             current_row,
             current_col,
+            direction,
         }
     }
 }
 
-impl Iterator for Grid {
+impl<'a> Iterator for GridIterator<'a> {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -72,17 +74,18 @@ impl Iterator for Grid {
 
         match self.direction {
             Direction::Right | Direction::Left => {
-                if self.current_row == self.height {
+                if self.current_row == self.grid.height {
                     return None;
                 }
-                res = self.matrix[self.current_row].iter().collect();
+                res = self.grid.matrix[self.current_row].iter().collect();
                 self.current_row += 1;
             }
             Direction::Down | Direction::Up => {
-                if self.current_col == self.width {
+                if self.current_col == self.grid.width {
                     return None;
                 }
                 res = self
+                    .grid
                     .matrix
                     .iter()
                     .map(|row| row[self.current_col])
@@ -90,13 +93,13 @@ impl Iterator for Grid {
                 self.current_col += 1;
             }
             Direction::DiagonalDownRight | Direction::DiagonalUpLeft => {
-                if self.current_row == self.height && self.current_col == 0 {
+                if self.current_row == self.grid.height && self.current_col == 0 {
                     return None;
                 }
                 let mut row = self.current_row;
                 let mut col = self.current_col;
-                while row < self.height && col < self.width {
-                    res.push(self.matrix[row][col]);
+                while row < self.grid.height && col < self.grid.width {
+                    res.push(self.grid.matrix[row][col]);
                     row += 1;
                     col += 1;
                 }
@@ -107,17 +110,17 @@ impl Iterator for Grid {
                 }
             }
             Direction::DiagonalDownLeft | Direction::DiagonalUpRight => {
-                if self.current_row == self.height && self.current_col == self.width - 1 {
+                if self.current_row == self.grid.height && self.current_col == self.grid.width - 1 {
                     return None;
                 }
                 let mut row = self.current_row;
                 let mut col = self.current_col;
-                while row < self.height && col < self.width {
-                    res.push(self.matrix[row][col]);
+                while row < self.grid.height && col < self.grid.width {
+                    res.push(self.grid.matrix[row][col]);
                     row += 1;
                     col -= 1;
                 }
-                if self.current_col < self.width - 1 {
+                if self.current_col < self.grid.width - 1 {
                     self.current_col += 1;
                 } else {
                     self.current_row += 1;
