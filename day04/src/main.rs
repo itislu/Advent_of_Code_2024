@@ -1,3 +1,4 @@
+use strum::IntoEnumIterator;
 use utils::input;
 
 fn main() {
@@ -10,7 +11,7 @@ fn exercise1(input: &String) -> usize {
     let mut res: usize = 0;
     let grid: Grid = Grid::new(input);
 
-    for direction in Direction::Right {
+    for direction in Direction::iter() {
         for line in grid.iter_direction(direction) {
             res += line.matches("XMAS").count();
         }
@@ -20,7 +21,7 @@ fn exercise1(input: &String) -> usize {
 }
 
 // Direction of strings in Grid
-#[derive(Clone, Copy)]
+#[derive(strum_macros::EnumIter)]
 enum Direction {
     Right,
     Left,
@@ -30,25 +31,6 @@ enum Direction {
     DiagonalDownLeft,
     DiagonalUpRight,
     DiagonalUpLeft,
-}
-
-impl Iterator for Direction {
-    type Item = Direction;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let current = *self;
-        *self = match *self {
-            Direction::Right => Direction::Left,
-            Direction::Left => Direction::Down,
-            Direction::Down => Direction::Up,
-            Direction::Up => Direction::DiagonalDownRight,
-            Direction::DiagonalDownRight => Direction::DiagonalDownLeft,
-            Direction::DiagonalDownLeft => Direction::DiagonalUpRight,
-            Direction::DiagonalUpRight => Direction::DiagonalUpLeft,
-            Direction::DiagonalUpLeft => return None,
-        };
-        Some(current)
-    }
 }
 
 struct Grid {
