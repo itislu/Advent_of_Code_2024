@@ -68,124 +68,67 @@ impl Iterator for Grid {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut res: Option<String>;
+        let mut res = String::new();
 
         match self.direction {
-            Direction::Right => {
+            Direction::Right | Direction::Left => {
                 if self.current_row == self.height {
-                    res = None;
+                    return None;
+                }
+                res = self.matrix[self.current_row].iter().collect();
+                self.current_row += 1;
+            },
+            Direction::Down | Direction::Up => {
+                if self.current_col == self.width {
+                    return None;
+                }
+                res = self.matrix.iter().map(|row| row[self.current_col]).collect();
+                self.current_col += 1;
+            },
+            Direction::DiagonalDownRight | Direction::DiagonalUpLeft => {
+                if self.current_row == self.height && self.current_col == 0 {
+                    return None;
+                }
+                let mut row = self.current_row;
+                let mut col = self.current_col;
+                while row < self.height && col < self.width {
+                    res.push(self.matrix[row][col]);
+                    row += 1;
+                    col += 1;
+                }
+                if self.current_col > 0 {
+                    self.current_col -= 1;
                 } else {
-                    res = Some(self.matrix[self.current_row].iter().collect());
                     self.current_row += 1;
                 }
             },
-            Direction::Left => {
-                if self.current_row == self.height {
-                    res = None;
+            Direction::DiagonalDownLeft | Direction::DiagonalUpRight => {
+                if self.current_row == self.height && self.current_col == self.width - 1 {
+                    return None;
+                }
+                let mut row = self.current_row;
+                let mut col = self.current_col;
+                while row < self.height && col < self.width {
+                    res.push(self.matrix[row][col]);
+                    row += 1;
+                    col -= 1;
+                }
+                if self.current_col < self.width - 1 {
+                    self.current_col += 1;
                 } else {
-                    res = Some(self.matrix[self.current_row].iter().rev().collect());
                     self.current_row += 1;
-                }
-            },
-            Direction::Down => {
-                if self.current_col == self.width {
-                    res = None;
-                } else {
-                    res = Some(self.matrix.iter().map(|row| row[self.current_col]).collect());
-                    self.current_col += 1;
-                }
-            },
-            Direction::Up => {
-                if self.current_col == self.width {
-                    res = None;
-                } else {
-                    res = Some(self.matrix.iter().rev().map(|row| row[self.current_col]).collect());
-                    self.current_col += 1;
-                }
-            },
-            Direction::DiagonalDownRight => {
-                if self.current_row == 0 && self.current_col == self.width {
-                    res = None;
-                } else {
-                    let mut string = String::new();
-                    let mut row = self.current_row;
-                    let mut col = self.current_col;
-                    while row < self.height && col < self.width {
-                        string.push(self.matrix[row][col]);
-                        row += 1;
-                        col += 1;
-                    }
-                    if self.current_col > 0 {
-                        self.current_col -= 1;
-                    } else {
-                        self.current_row += 1;
-                    }
-                    res = Some(string);
-                }
-            },
-            Direction::DiagonalDownLeft => {
-                if self.current_row == self.height && self.current_col == self.width {
-                    res = None;
-                } else {
-                    let mut string = String::new();
-                    let mut row = self.current_row;
-                    let mut col = self.current_col;
-                    while row < self.height && col < self.width {
-                        string.push(self.matrix[row][col]);
-                        row += 1;
-                        col -= 1;
-                    }
-                    if self.current_col < self.width - 1 {
-                        self.current_col += 1;
-                    } else {
-                        self.current_row += 1;
-                    }
-                    res = Some(string);
-                }
-            },
-            Direction::DiagonalUpRight => {
-                if self.current_row == self.height && self.current_col == self.width {
-                    res = None;
-                } else {
-                    let mut string = String::new();
-                    let mut row = self.current_row;
-                    let mut col = self.current_col;
-                    while row < self.height && col < self.width {
-                        string.push(self.matrix[row][col]);
-                        row -= 1;
-                        col += 1;
-                    }
-                    if self.current_row < self.height - 1 {
-                        self.current_row += 1;
-                    } else {
-                        self.current_col += 1;
-                    }
-                    res = Some(string);
-                }
-            },
-            Direction::DiagonalUpLeft => {
-                if self.current_row == self.height && self.current_col == self.width {
-                    res = None;
-                } else {
-                    let mut string = String::new();
-                    let mut row = self.current_row;
-                    let mut col = self.current_col;
-                    while row < self.height && col < self.width {
-                        string.push(self.matrix[row][col]);
-                        row -= 1;
-                        col -= 1;
-                    }
-                    if self.current_row < self.height - 1 {
-                        self.current_row += 1;
-                    } else {
-                        self.current_col -= 1;
-                    }
-                    res = Some(string);
                 }
             },
         }
 
-        res
+        match self.direction {
+            Direction::Left | Direction::Up | Direction::DiagonalUpRight | Direction::DiagonalUpLeft => {
+                res = res.chars().rev().collect();
+            },
+            _ => {}
+        }
+
+        Some(res)
     }
 
 }
