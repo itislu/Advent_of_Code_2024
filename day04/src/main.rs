@@ -96,13 +96,11 @@ impl<'a> Iterator for GridIterator<'a> {
                 if self.current_row == self.grid.height && self.current_col == 0 {
                     return None;
                 }
-                let mut row = self.current_row;
-                let mut col = self.current_col;
-                while row < self.grid.height && col < self.grid.width {
-                    res.push(self.grid.matrix[row][col]);
-                    row += 1;
-                    col += 1;
-                }
+                res.extend(
+                    (self.current_row..self.grid.height)
+                        .zip(self.current_col..self.grid.width)
+                        .map(|(row, col)| self.grid.matrix[row][col]),
+                );
                 if self.current_col > 0 {
                     self.current_col -= 1;
                 } else {
@@ -113,13 +111,11 @@ impl<'a> Iterator for GridIterator<'a> {
                 if self.current_row == self.grid.height && self.current_col == self.grid.width - 1 {
                     return None;
                 }
-                let mut row = self.current_row;
-                let mut col = self.current_col;
-                while row < self.grid.height && col < self.grid.width {
-                    res.push(self.grid.matrix[row][col]);
-                    row += 1;
-                    col -= 1;
-                }
+                res.extend(
+                    (self.current_row..self.grid.height)
+                        .zip(self.current_col..=0)
+                        .map(|(row, col)| self.grid.matrix[row][col]),
+                );
                 if self.current_col < self.grid.width - 1 {
                     self.current_col += 1;
                 } else {
