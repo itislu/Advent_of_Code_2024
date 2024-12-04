@@ -42,8 +42,8 @@ impl Grid {
             current_row: 0,
             current_col: 0,
         }
-    }    
-    
+    }
+
     fn with_direction(input: &String, direction: Direction) -> Self {
         let matrix: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
         let height = matrix.len();
@@ -77,14 +77,18 @@ impl Iterator for Grid {
                 }
                 res = self.matrix[self.current_row].iter().collect();
                 self.current_row += 1;
-            },
+            }
             Direction::Down | Direction::Up => {
                 if self.current_col == self.width {
                     return None;
                 }
-                res = self.matrix.iter().map(|row| row[self.current_col]).collect();
+                res = self
+                    .matrix
+                    .iter()
+                    .map(|row| row[self.current_col])
+                    .collect();
                 self.current_col += 1;
-            },
+            }
             Direction::DiagonalDownRight | Direction::DiagonalUpLeft => {
                 if self.current_row == self.height && self.current_col == 0 {
                     return None;
@@ -101,7 +105,7 @@ impl Iterator for Grid {
                 } else {
                     self.current_row += 1;
                 }
-            },
+            }
             Direction::DiagonalDownLeft | Direction::DiagonalUpRight => {
                 if self.current_row == self.height && self.current_col == self.width - 1 {
                     return None;
@@ -118,19 +122,19 @@ impl Iterator for Grid {
                 } else {
                     self.current_row += 1;
                 }
-            },
+            }
         }
-
         match self.direction {
-            Direction::Left | Direction::Up | Direction::DiagonalUpRight | Direction::DiagonalUpLeft => {
+            Direction::Left
+            | Direction::Up
+            | Direction::DiagonalUpRight
+            | Direction::DiagonalUpLeft => {
                 res = res.chars().rev().collect();
-            },
+            }
             _ => {}
         }
-
         Some(res)
     }
-
 }
 
 fn exercise1(input: &String) -> usize {
