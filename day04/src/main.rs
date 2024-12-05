@@ -12,15 +12,10 @@ fn exercise1(input: &String) -> usize {
     let grid: Grid = Grid::new(input);
 
     for direction in Direction::iter() {
-        println!("Direction::{:?}:", direction);
-        for (i, line) in grid.iter_direction(direction).enumerate() {
-            let tmp = line.matches("XMAS").count();
-            println!("    line {} contains {} matches", i, tmp);
-            res += tmp;
+        for line in grid.iter_direction(direction) {
+            res += line.matches("XMAS").count();
         }
-        println!("res after Direction::{:?}: {}", direction, res);
     }
-
     res
 }
 
@@ -130,7 +125,7 @@ impl<'a> Iterator for GridIterator<'a> {
                 }
                 res.extend(
                     (self.current_row..self.grid.height)
-                        .zip(self.current_col..=0)
+                        .zip((0..=self.current_col).rev())
                         .map(|(row, col)| self.grid.matrix[row][col]),
                 );
                 if self.current_col < self.grid.width - 1 {
