@@ -4,7 +4,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    // println!("exercise 2: {}", exercise2(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &String) -> usize {
@@ -17,6 +17,36 @@ fn exercise1(input: &String) -> usize {
         }
     }
     res
+}
+
+fn exercise2(input: &String) -> usize {
+    let mut res: usize = 0;
+    let grid: Grid = Grid::new(input);
+
+    for r in 1..grid.height - 1 {
+        for c in 1..grid.width - 1 {
+            if grid.matrix[r][c] == 'A' && is_cross_mas(&grid, r, c) {
+                res += 1;
+            }
+        }
+    }
+    res
+}
+
+fn is_cross_mas(grid: &Grid, r: usize, c: usize) -> bool {
+    let diagonal = grid.matrix[r - 1][c - 1].to_string()
+        + &grid.matrix[r][c].to_string()
+        + &grid.matrix[r + 1][c + 1].to_string();
+    if diagonal != "MAS" && diagonal != "SAM" {
+        return false;
+    }
+    let diagonal = grid.matrix[r - 1][c + 1].to_string()
+        + &grid.matrix[r][c].to_string()
+        + &grid.matrix[r + 1][c - 1].to_string();
+    if diagonal != "MAS" && diagonal != "SAM" {
+        return false;
+    }
+    true
 }
 
 // Direction of strings in Grid
@@ -159,10 +189,10 @@ mod test {
         assert_eq!(res, 18);
     }
 
-    // #[test]
-    // fn test_ex2() {
-    //     let input = input::read_example();
-    //     let res = exercise2(&input);
-    //     assert_eq!(res, 48);
-    // }
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 9);
+    }
 }
