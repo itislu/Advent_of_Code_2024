@@ -13,12 +13,16 @@ fn exercise1(input: &String) -> usize {
     for update in updates {
         if update
             .windows(2)
-            .all(|window| rules.iter().any(|&n| n.0 == window[0] && n.1 == window[1]))
+            .all(|window| is_correct_pair(window[0], window[1], &rules))
         {
             res += update[update.len() / 2] as usize;
         }
     }
     res
+}
+
+fn is_correct_pair(n1: u32, n2: u32, rules: &Vec<(u32, u32)>) -> bool {
+    rules.iter().any(|&rule| rule.0 == n1 && rule.1 == n2)
 }
 
 fn parse_rules(input: &String) -> Vec<(u32, u32)> {
