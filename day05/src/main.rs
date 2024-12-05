@@ -6,19 +6,18 @@ fn main() {
 }
 
 fn exercise1(input: &String) -> usize {
-    let mut res: usize = 0;
     let rules: Vec<(u32, u32)> = parse_rules(input);
     let updates: Vec<Vec<u32>> = parse_updates(input);
 
-    for update in updates {
-        if update
-            .windows(2)
-            .all(|window| is_correct_pair(window[0], window[1], &rules))
-        {
-            res += update[update.len() / 2] as usize;
-        }
-    }
-    res
+    updates
+        .iter()
+        .filter(|update| {
+            update
+                .windows(2)
+                .all(|window| is_correct_pair(window[0], window[1], &rules))
+        })
+        .map(|update| update[update.len() / 2] as usize)
+        .sum()
 }
 
 fn is_correct_pair(n1: u32, n2: u32, rules: &Vec<(u32, u32)>) -> bool {
