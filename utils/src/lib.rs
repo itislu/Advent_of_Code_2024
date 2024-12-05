@@ -3,6 +3,14 @@ pub mod input {
     use std::fs;
     use std::path;
 
+    pub fn read_input() -> String {
+        read_file("input.txt")
+    }
+
+    pub fn read_example() -> String {
+        read_file("input_example.txt")
+    }
+
     fn read_file(filename: &str) -> String {
         let dir = match env::var("CARGO_MANIFEST_DIR") {
             Ok(dir) => path::PathBuf::from(dir),
@@ -10,14 +18,6 @@ pub mod input {
         };
         let path = dir.join(filename);
         fs::read_to_string(&path).expect(&format!("Failed to read file {}", path.display()))
-    }
-
-    pub fn read_input() -> String {
-        read_file("input.txt")
-    }
-
-    pub fn read_example() -> String {
-        read_file("input_example.txt")
     }
 }
 
