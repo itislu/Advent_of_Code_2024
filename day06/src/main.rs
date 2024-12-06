@@ -57,7 +57,7 @@ enum Indicator {
     Start,
     Obstacle,
     Visited,
-    Unvisited,
+    NotVisited,
 }
 
 impl From<char> for Indicator {
@@ -66,7 +66,7 @@ impl From<char> for Indicator {
             '^' => Indicator::Start,
             '#' => Indicator::Obstacle,
             'X' => Indicator::Visited,
-            '.' => Indicator::Unvisited,
+            '.' => Indicator::NotVisited,
             _ => panic!("Invalid character in map found!"),
         }
     }
@@ -78,7 +78,7 @@ impl std::fmt::Display for Indicator {
             Indicator::Start => '^',
             Indicator::Obstacle => '#',
             Indicator::Visited => 'X',
-            Indicator::Unvisited => '.',
+            Indicator::NotVisited => '.',
         };
         write!(f, "{}", c)
     }
@@ -97,7 +97,7 @@ struct Cell {
     indicator: Indicator,
     row: i64,
     col: i64,
-    visited: Vec<Visit>,
+    visited: Vec<Direction>,
 }
 
 impl Cell {
@@ -110,27 +110,14 @@ impl Cell {
         }
     }
 
-    fn visit(&mut self, direction: Direction) -> Result<(), &Vec<Visit>> {
-        self.visited.push(Visit::new(self.row, self.col, direction));
+    fn visit(&mut self, direction: Direction) -> Result<(), &Vec<Direction>> {
+        self.visited.push(direction);
         if self.indicator == Indicator::Obstacle {
             Err(&self.visited)
         } else {
             self.indicator = Indicator::Visited;
             Ok(())
         }
-    }
-}
-
-#[derive(Clone, Copy)]
-struct Visit {
-    row: i64,
-    col: i64,
-    with: Direction,
-}
-
-impl Visit {
-    fn new(row: i64, col: i64, with: Direction) -> Self {
-        Visit { row, col, with }
     }
 }
 
@@ -239,15 +226,14 @@ struct Guard {
     row: i64,
     col: i64,
     direction: Direction,
-    path: Vec<Visit>,
 }
 
 impl Guard {
     fn new(input: &String) -> Self {
+        let mut map = Map::new(input);
         let mut row: i64 = -1;
         let mut col: i64 = -1;
         let direction = Direction::Up;
-        let mut map = Map::new(input);
 
         'outer: for (y, line) in map.grid.iter().enumerate() {
             for (x, cell) in line.iter().enumerate() {
@@ -264,7 +250,6 @@ impl Guard {
             row,
             col,
             direction,
-            path: Vec::new(),
         }
     }
 
@@ -287,14 +272,12 @@ impl Guard {
                 Ok(_) => {
                     self.row = new_row;
                     self.col = new_col;
-                    self.path
-                        .push(Visit::new(self.row, self.col, self.direction));
                     MoveResult::Success
                 }
                 Err(visited) => {
                     if visited
                         .iter()
-                        .filter(|&&visit| visit.with == self.direction)
+                        .filter(|&&direction| direction == self.direction)
                         .count()
                         <= 1
                     {
