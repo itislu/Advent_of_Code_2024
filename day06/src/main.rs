@@ -235,15 +235,15 @@ impl Guard {
         let mut col: i64 = -1;
         let direction = Direction::Up;
 
-        'outer: for (y, line) in map.grid.iter().enumerate() {
-            for (x, cell) in line.iter().enumerate() {
-                if cell.indicator == Indicator::Start {
-                    row = y as i64;
-                    col = x as i64;
-                    map.grid[row as usize][col as usize].indicator = Indicator::Visited;
-                    break 'outer;
-                }
-            }
+        if let Some(cell) = map
+            .grid
+            .iter_mut()
+            .flatten()
+            .find(|cell| cell.indicator == Indicator::Start)
+        {
+            row = cell.row;
+            col = cell.col;
+            cell.indicator = Indicator::Visited;
         }
         Guard {
             map,
