@@ -23,31 +23,32 @@ fn exercise1(input: &String) -> usize {
 
 fn exercise2(input: &String) -> usize {
     let mut res: usize = 0;
-    let mut guard = Guard::new(input);
-    let mut guard_states: Vec<Guard> = Vec::new();
+    let mut main_guard = Guard::new(input);
 
     loop {
-        guard_states.push(guard.clone());
-        if !guard.move_forward() {
+        let mut trial_guard = main_guard.clone();
+        if !main_guard.move_forward() {
             break;
         }
-    }
-
-    for window in guard_states.windows(2).rev() {
-        let mut guard = window[1].clone();
-        let obstacle = &window[0];
-        guard
+        if let Some(cell) = trial_guard.map.at(main_guard.row, main_guard.col) {
+            if cell.indicator == Indicator::Visited {
+                continue;
+            }
+        }
+        trial_guard
             .map
-            .put(obstacle.row, obstacle.col, Indicator::Obstacle);
+            .put(main_guard.row, main_guard.col, Indicator::Obstacle);
         loop {
-            match guard.move_forward() {
+            match trial_guard.move_forward() {
                 MoveResult::Success => {}
-                MoveResult::InfiniteLoop => res += 1,
+                MoveResult::InfiniteLoop => {
+                    res += 1;
+                    break;
+                }
                 MoveResult::OutOfBounds => break,
             }
         }
     }
-
     res
 }
 
