@@ -1,3 +1,4 @@
+use std::ops::Not;
 use utils::input;
 
 fn main() {
@@ -7,18 +8,17 @@ fn main() {
 }
 
 fn exercise1(input: &String) -> usize {
-    let mut map = Map::new(input);
-    println!("BEFORE:\n{}\n", map);
     let mut guard = Guard::new(input);
 
+    println!("BEFORE:\n{}\n", guard.map);
     loop {
         if !guard.move_forward() {
             break;
         }
     }
-    println!("AFTER:\n{}\n", map);
+    println!("AFTER:\n{}\n", guard.map);
 
-    map.count_visited()
+    guard.map.count_visited()
 }
 
 fn exercise2(input: &String) -> usize {
@@ -40,8 +40,10 @@ fn exercise2(input: &String) -> usize {
             .map
             .put(obstacle.row, obstacle.col, Indicator::Obstacle);
         loop {
-            if !guard.move_forward() {
-                break;
+            match guard.move_forward() {
+                MoveResult::Success => {}
+                MoveResult::InfiniteLoop => res += 1,
+                MoveResult::OutOfBounds => break,
             }
         }
     }
@@ -205,6 +207,31 @@ impl std::fmt::Display for Map {
     }
 }
 
+#[derive(Clone, Copy)]
+struct Movement {
+    row_delta: i64,
+    col_delta: i64,
+    direction: Direction,
+    alt_move: fn(&mut Guard) -> MoveResult,
+}
+
+enum MoveResult {
+    Success,
+    OutOfBounds,
+    InfiniteLoop,
+}
+
+impl Not for MoveResult {
+    type Output = bool;
+
+    fn not(self) -> Self::Output {
+        match self {
+            MoveResult::Success => false,
+            _ => true,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Guard {
     map: Map,
@@ -240,7 +267,7 @@ impl Guard {
         }
     }
 
-    fn move_forward(&mut self) -> bool {
+    fn move_forward(&mut self) -> MoveResult {
         match self.direction {
             Direction::Up => self.move_up(),
             Direction::Down => self.move_down(),
@@ -249,45 +276,19 @@ impl Guard {
         }
     }
 
-    fn move_up(&mut self) -> bool {
-        let new_row = self.row - 1;
-        self.direction = Direction::Up;
-        if let Some(cell) = self.map.at(new_row, self.col) {
+    fn try_move(&mut self, movement: Movement) -> MoveResult {
+        let new_row = self.row + movement.row_delta;
+        let new_col = self.col + movement.col_delta;
+        self.direction = movement.direction;
+
+        if let Some(cell) = self.map.at(new_row, new_col) {
             match cell.visit(self.direction) {
                 Ok(_) => {
                     self.row = new_row;
-                    self.path
-                        .push(Visit::new(self.row, self.col, self.direction));
-                    true
-                }
-                Err(visited) => {
-                    if visited
-                        .iter()
-                        .filter(|&&visit| visit.with == self.direction)
-                        .count()
-                        <= 1
-                    {
-                        self.move_right()
-                    } else {
-                        false
-                    }
-                }
-            }
-        } else {
-            false
-        }
-    }
-
-    fn move_right(&mut self) -> bool {
-        let new_col = self.col + 1;
-        self.direction = Direction::Right;
-        if let Some(cell) = self.map.at(self.row, new_col) {
-            match cell.visit(self.direction) {
-                Ok(_) => {
                     self.col = new_col;
                     self.path
                         .push(Visit::new(self.row, self.col, self.direction));
-                    true
+                    MoveResult::Success
                 }
                 Err(visited) => {
                     if visited
@@ -296,73 +297,51 @@ impl Guard {
                         .count()
                         <= 1
                     {
-                        self.move_down()
+                        (movement.alt_move)(self)
                     } else {
-                        false
+                        MoveResult::InfiniteLoop
                     }
                 }
             }
         } else {
-            false
+            MoveResult::OutOfBounds
         }
     }
 
-    fn move_down(&mut self) -> bool {
-        let new_row = self.row + 1;
-        self.direction = Direction::Down;
-        if let Some(cell) = self.map.at(new_row, self.col) {
-            match cell.visit(self.direction) {
-                Ok(_) => {
-                    self.row = new_row;
-                    self.path
-                        .push(Visit::new(self.row, self.col, self.direction));
-                    true
-                }
-                Err(visited) => {
-                    if visited
-                        .iter()
-                        .filter(|&&visit| visit.with == self.direction)
-                        .count()
-                        <= 1
-                    {
-                        self.move_left()
-                    } else {
-                        false
-                    }
-                }
-            }
-        } else {
-            false
-        }
+    fn move_up(&mut self) -> MoveResult {
+        self.try_move(Movement {
+            row_delta: -1,
+            col_delta: 0,
+            direction: Direction::Up,
+            alt_move: Guard::move_right,
+        })
     }
 
-    fn move_left(&mut self) -> bool {
-        let new_col = self.col - 1;
-        self.direction = Direction::Left;
-        if let Some(cell) = self.map.at(self.row, new_col) {
-            match cell.visit(self.direction) {
-                Ok(_) => {
-                    self.col = new_col;
-                    self.path
-                        .push(Visit::new(self.row, self.col, self.direction));
-                    true
-                }
-                Err(visited) => {
-                    if visited
-                        .iter()
-                        .filter(|&&visit| visit.with == self.direction)
-                        .count()
-                        <= 1
-                    {
-                        self.move_up()
-                    } else {
-                        false
-                    }
-                }
-            }
-        } else {
-            false
-        }
+    fn move_right(&mut self) -> MoveResult {
+        self.try_move(Movement {
+            row_delta: 0,
+            col_delta: 1,
+            direction: Direction::Right,
+            alt_move: Guard::move_down,
+        })
+    }
+
+    fn move_down(&mut self) -> MoveResult {
+        self.try_move(Movement {
+            row_delta: 1,
+            col_delta: 0,
+            direction: Direction::Down,
+            alt_move: Guard::move_left,
+        })
+    }
+
+    fn move_left(&mut self) -> MoveResult {
+        self.try_move(Movement {
+            row_delta: 0,
+            col_delta: -1,
+            direction: Direction::Left,
+            alt_move: Guard::move_up,
+        })
     }
 }
 
