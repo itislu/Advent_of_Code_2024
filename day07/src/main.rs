@@ -8,23 +8,16 @@ fn main() {
 
 fn exercise1(input: &String) -> i64 {
     let mut res: i64 = 0;
+
     for line in input.lines() {
         let target = parse_target(line);
         let numbers = parse_numbers(line);
-        let mut operator_map: usize = numbers.len();
+        let mut operator_map: usize = 2_usize.pow(numbers.len() as u32 - 1);
 
         loop {
-            let mut operator = Operator::new(operator_map);
-
-            for number in numbers.iter() {
-                operator.calculate(*number);
-            }
-            if let Some(cur_res) = operator.res {
-                if cur_res == target {
-                    res += cur_res;
-                    break;
-                }
-            } else {
+            let operator = Operator::new(operator_map, &numbers);
+            if operator.calculate() == target {
+                res += target;
                 break;
             }
             if operator_map == 0 {
@@ -36,37 +29,32 @@ fn exercise1(input: &String) -> i64 {
     res
 }
 
-struct Operator {
+struct Operator<'a> {
     operator_map: usize,
-    size: usize,
-    res: Option<i64>,
+    numbers: &'a Vec<i64>,
 }
 
-impl Operator {
-    fn new(operator_map: usize) -> Self {
+impl<'a> Operator<'a> {
+    fn new(operator_map: usize, numbers: &'a Vec<i64>) -> Self {
         Operator {
             operator_map,
-            size: operator_map + 1,
-            res: None,
+            numbers,
         }
     }
 
-    fn calculate(&mut self, n: i64) -> Option<i64> {
-        if self.size == 0 {
-            return None;
+    fn calculate(&self) -> i64 {
+        if self.numbers.len() == 0 {
+            return 0;
         }
-        if let Some(cur_res) = self.res {
-            match self.operator_map & 1 {
-                0 => self.res = Some(cur_res + n),
-                1 => self.res = Some(cur_res * n),
+        let mut res: i64 = self.numbers[0];
+        for (i, number) in self.numbers.iter().skip(1).enumerate() {
+            match self.operator_map.saturating_sub(i) & 1 {
+                0 => res += number,
+                1 => res *= number,
                 _ => panic!(),
             };
-            self.operator_map <<= 1;
-            self.size -= 1;
-        } else {
-            self.res = Some(n);
         }
-        self.res
+        res
     }
 }
 
