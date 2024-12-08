@@ -1,5 +1,10 @@
 use itertools::Itertools;
-use std::{cell::RefCell, cmp, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 use utils::input;
 
 fn main() {
@@ -15,7 +20,7 @@ fn exercise1(input: &String) -> usize {
 
     for antennas in map.antennas.values() {
         for combination in antennas.iter().combinations(2) {
-            /* `combination` is a `Vec<&Rc<RefCell<Point>>>`. 
+            /* `combination` is a `Vec<&Rc<RefCell<Point>>>`.
             `Rc` is a reference counter, `RefCell` a dynamic borrow checker.
             First index into the vector, then dereference the `Rc`, then use `borrow()` to borrow the value from the `RefCell`, and then pass a reference to that value.
             This would lead to `&*combination[0]`, but Rust is able to dereference this automatically. */
@@ -30,23 +35,16 @@ fn exercise1(input: &String) -> usize {
             res += 1;
         }
     }
+    println!("FINAL MAP:\n{}", map);
     res
 }
 
 fn get_antinodes(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
-    let row_diff: i32 = antenna1.row.abs_diff(antenna2.row) as i32;
-    let col_diff: i32 = antenna1.col.abs_diff(antenna2.col) as i32;
+    let row_diff: i32 = antenna2.row - antenna1.row;
+    let col_diff: i32 = antenna2.col - antenna1.col;
     vec![
-        Point::new(
-            cmp::min(antenna1.row, antenna2.row) - row_diff,
-            cmp::min(antenna1.col, antenna2.col) - col_diff,
-            '#',
-        ),
-        Point::new(
-            cmp::max(antenna1.row, antenna2.row) + row_diff,
-            cmp::max(antenna1.col, antenna2.col) + col_diff,
-            '#',
-        ),
+        Point::new(antenna1.row - row_diff, antenna1.col - col_diff, '#'),
+        Point::new(antenna2.row + row_diff, antenna2.col + col_diff, '#'),
     ]
 }
 
@@ -102,7 +100,28 @@ impl Map {
     }
 }
 
-#[derive(Clone)]
+impl Display for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in &self.grid {
+            for point in row {
+                write!(f, "{}", point.borrow())?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
+}
+
+impl Debug for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for point in self.grid.iter().flatten() {
+            writeln!(f, "{:?}", point.borrow())?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
 struct Point {
     row: i32,
     col: i32,
@@ -120,6 +139,12 @@ impl Point {
 
     fn contains(&self, ch: char) -> bool {
         self.data.contains(&ch)
+    }
+}
+
+impl Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.data.last().unwrap_or(&'_'))
     }
 }
 
