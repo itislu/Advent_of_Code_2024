@@ -48,7 +48,7 @@ impl<'a> Operator<'a> {
         }
         let mut res: i64 = self.numbers[0];
         for (i, number) in self.numbers.iter().skip(1).enumerate() {
-            match self.punch_card.saturating_sub(i) & 1 {
+            match (self.punch_card >> i) & 1 {
                 0 => res += number,
                 1 => res *= number,
                 _ => panic!(),
