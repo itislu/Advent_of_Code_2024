@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::{cell::RefCell, cmp, collections::HashMap};
+use std::{cell::RefCell, cmp, collections::HashMap, rc::Rc};
 use utils::input;
 
 fn main() {
@@ -15,8 +15,9 @@ fn exercise1(input: &String) -> usize {
 
     for antennas in map.antennas.values() {
         for combination in antennas.iter().combinations(2) {
-            /* `combination` is a `Vec<&RefCell<Point>>`. `RefCell` is a dynamic borrow checker.
-            First index into the vector, then dereference the reference to the `RefCell`, then use `borrow()` to borrow the value from the `RefCell`, and then pass a reference to that value.
+            /* `combination` is a `Vec<&Rc<RefCell<Point>>>`. 
+            `Rc` is a reference counter, `RefCell` a dynamic borrow checker.
+            First index into the vector, then dereference the `Rc`, then use `borrow()` to borrow the value from the `RefCell`, and then pass a reference to that value.
             This would lead to `&*combination[0]`, but Rust is able to dereference this automatically. */
             antinodes.extend(get_antinodes(
                 &combination[0].borrow(),
@@ -50,25 +51,26 @@ fn get_antinodes(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
 }
 
 struct Map {
-    grid: Vec<Vec<RefCell<Point>>>,
-    antennas: HashMap<char, Vec<RefCell<Point>>>,
+    grid: Vec<Vec<Rc<RefCell<Point>>>>,
+    antennas: HashMap<char, Vec<Rc<RefCell<Point>>>>,
     height: usize,
     width: usize,
 }
 
 impl Map {
     fn new(input: &String) -> Self {
-        let mut grid: Vec<Vec<RefCell<Point>>> = Vec::new();
-        let mut antennas: HashMap<char, Vec<RefCell<Point>>> = HashMap::new();
+        let mut grid: Vec<Vec<Rc<RefCell<Point>>>> = Vec::new();
+        let mut antennas: HashMap<char, Vec<Rc<RefCell<Point>>>> = HashMap::new();
+
         for (i, line) in input.lines().enumerate() {
-            let mut row: Vec<RefCell<Point>> = Vec::new();
+            let mut row: Vec<Rc<RefCell<Point>>> = Vec::new();
             for (j, ch) in line.chars().enumerate() {
-                let point = RefCell::new(Point::new(i as i32, j as i32, ch));
-                if point.borrow().data[0] != '.' {
+                let point = Rc::new(RefCell::new(Point::new(i as i32, j as i32, ch)));
+                if ch != '.' {
                     antennas
-                        .entry(point.borrow().data[0])
+                        .entry(ch)
                         .or_insert(Vec::new())
-                        .push(point.clone());
+                        .push(Rc::clone(&point));
                 }
                 row.push(point);
             }
