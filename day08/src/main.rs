@@ -13,7 +13,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> usize {
+fn exercise1(input: &str) -> usize {
     let mut res: usize = 0;
     let mut map = Map::new(input);
     let mut antinodes = Vec::new();
@@ -39,7 +39,7 @@ fn exercise1(input: &String) -> usize {
     res
 }
 
-fn exercise2(input: &String) -> usize {
+fn exercise2(input: &str) -> usize {
     let mut res: usize = 0;
     let mut map = Map::new(input);
     let mut antinodes = Vec::new();
@@ -103,7 +103,7 @@ struct Map {
 }
 
 impl Map {
-    fn new(input: &String) -> Self {
+    fn new(input: &str) -> Self {
         let mut grid: Vec<Vec<Rc<RefCell<Point>>>> = Vec::new();
         let mut antennas: HashMap<char, Vec<Rc<RefCell<Point>>>> = HashMap::new();
 
