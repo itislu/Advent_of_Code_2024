@@ -10,7 +10,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    // println!("exercise 2: {}", exercise2(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &String) -> usize {
@@ -24,7 +24,7 @@ fn exercise1(input: &String) -> usize {
             `Rc` is a reference counter, `RefCell` a dynamic borrow checker.
             First index into the vector, then dereference the `Rc`, then use `borrow()` to borrow the value from the `RefCell`, and then pass a reference to that value.
             This would lead to `&*combination[0]`, but Rust is able to dereference this automatically. */
-            antinodes.extend(get_antinodes(
+            antinodes.extend(get_antinodes1(
                 &combination[0].borrow(),
                 &combination[1].borrow(),
             ));
@@ -39,13 +39,57 @@ fn exercise1(input: &String) -> usize {
     res
 }
 
-fn get_antinodes(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
+fn exercise2(input: &String) -> usize {
+    let mut res: usize = 0;
+    let mut map = Map::new(input);
+    let mut antinodes = Vec::new();
+
+    for antennas in map.antennas.values() {
+        for combination in antennas.iter().combinations(2) {
+            antinodes.extend(get_antinodes2(
+                &combination[0].borrow(),
+                &combination[1].borrow(),
+            ));
+        }
+    }
+    for antinode in antinodes {
+        if map.put_antinode(&antinode) {
+            res += 1;
+        }
+    }
+    println!("FINAL MAP:\n{}", map);
+    res
+}
+
+fn get_antinodes1(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
     let row_diff: i32 = antenna2.row - antenna1.row;
     let col_diff: i32 = antenna2.col - antenna1.col;
     vec![
         Point::new(antenna1.row - row_diff, antenna1.col - col_diff, '#'),
         Point::new(antenna2.row + row_diff, antenna2.col + col_diff, '#'),
     ]
+}
+
+fn get_antinodes2(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
+    let row_diff: i32 = antenna2.row - antenna1.row;
+    let col_diff: i32 = antenna2.col - antenna1.col;
+
+    (0..1000)
+        .flat_map(|i| {
+            [
+                Point::new(
+                    antenna1.row - row_diff * i,
+                    antenna1.col - col_diff * i,
+                    '#',
+                ),
+                Point::new(
+                    antenna1.row + row_diff * i,
+                    antenna1.col + col_diff * i,
+                    '#',
+                ),
+            ]
+        })
+        .collect()
 }
 
 struct Map {
@@ -159,10 +203,10 @@ mod test {
         assert_eq!(res, 14);
     }
 
-    // #[test]
-    // fn test_ex2() {
-    //     let input = input::read_example();
-    //     let res = exercise2(&input);
-    //     assert_eq!(res, 11387);
-    // }
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 34);
+    }
 }
