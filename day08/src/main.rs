@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::{cmp, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, cmp, collections::HashMap};
 use utils::input;
 
 fn main() {
@@ -15,19 +15,24 @@ fn exercise1(input: &String) -> usize {
 
     for antennas in map.antennas.values() {
         for combination in antennas.iter().combinations(2) {
-            antinodes.extend(get_antinodes(**combination[0], **combination[1]));
+            /* `combination` is a `Vec<&RefCell<Point>>`. `RefCell` is a dynamic borrow checker.
+            First index into the vector, then dereference the reference to the `RefCell`, then use `borrow()` to borrow the value from the `RefCell`, and then pass a reference to that value.
+            This would lead to `&*combination[0]`, but Rust is able to dereference this automatically. */
+            antinodes.extend(get_antinodes(
+                &combination[0].borrow(),
+                &combination[1].borrow(),
+            ));
         }
     }
     for antinode in antinodes {
-        if map.put(antinode) {
+        if map.put_antinode(&antinode) {
             res += 1;
         }
     }
-
     res
 }
 
-fn get_antinodes(antenna1: Point, antenna2: Point) -> Vec<Point> {
+fn get_antinodes(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
     let row_diff: i32 = antenna1.row.abs_diff(antenna2.row) as i32;
     let col_diff: i32 = antenna1.col.abs_diff(antenna2.col) as i32;
     vec![
@@ -45,23 +50,23 @@ fn get_antinodes(antenna1: Point, antenna2: Point) -> Vec<Point> {
 }
 
 struct Map {
-    grid: Vec<Vec<Rc<Point>>>,
-    antennas: HashMap<char, Vec<Rc<Point>>>,
+    grid: Vec<Vec<RefCell<Point>>>,
+    antennas: HashMap<char, Vec<RefCell<Point>>>,
     height: usize,
     width: usize,
 }
 
 impl Map {
     fn new(input: &String) -> Self {
-        let mut grid: Vec<Vec<Rc<Point>>> = Vec::new();
-        let mut antennas: HashMap<char, Vec<Rc<Point>>> = HashMap::new();
+        let mut grid: Vec<Vec<RefCell<Point>>> = Vec::new();
+        let mut antennas: HashMap<char, Vec<RefCell<Point>>> = HashMap::new();
         for (i, line) in input.lines().enumerate() {
-            let mut row: Vec<Rc<Point>> = Vec::new();
+            let mut row: Vec<RefCell<Point>> = Vec::new();
             for (j, ch) in line.chars().enumerate() {
-                let point = Rc::new(Point::new(i as i32, j as i32, ch));
-                if point.data != '.' {
+                let point = RefCell::new(Point::new(i as i32, j as i32, ch));
+                if point.borrow().data[0] != '.' {
                     antennas
-                        .entry(point.data)
+                        .entry(point.borrow().data[0])
                         .or_insert(Vec::new())
                         .push(point.clone());
                 }
@@ -77,21 +82,17 @@ impl Map {
         }
     }
 
-    fn is_in(&self, point: Point) -> bool {
+    fn is_in(&self, point: &Point) -> bool {
         (0..self.height as i32).contains(&point.row) && (0..self.width as i32).contains(&point.col)
     }
 
-    fn get(&self, point: Point) -> char {
-        self.grid[point.row as usize][point.col as usize].data
+    fn get(&self, point: &Point) -> &RefCell<Point> {
+        &self.grid[point.row as usize][point.col as usize]
     }
 
-    fn is_empty(&self, point: Point) -> bool {
-        self.get(point) == '.'
-    }
-
-    fn put(&mut self, point: Point) -> bool {
-        if self.is_in(point) && self.is_empty(point) {
-            self.grid[point.row as usize][point.col as usize] = point.into();
+    fn put_antinode(&mut self, point: &Point) -> bool {
+        if self.is_in(&point) && !self.get(&point).borrow().contains('#') {
+            self.get(&point).borrow_mut().data.push('#');
             true
         } else {
             false
@@ -99,16 +100,24 @@ impl Map {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Point {
     row: i32,
     col: i32,
-    data: char,
+    data: Vec<char>,
 }
 
 impl Point {
     fn new(row: i32, col: i32, data: char) -> Self {
-        Point { row, col, data }
+        Point {
+            row,
+            col,
+            data: vec![data],
+        }
+    }
+
+    fn contains(&self, ch: char) -> bool {
+        self.data.contains(&ch)
     }
 }
 
