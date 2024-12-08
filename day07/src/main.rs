@@ -6,7 +6,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-/**
+/*
 Let's say we have 4 numbers - that means 3 spaces for operators.
 How to get all permutations of what these 3 operators could be?
 Well, there are 2^3 permutations possible. By counting down from 2^3 it will get all the possible bit patterns lower than the original pattern.
