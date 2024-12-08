@@ -49,6 +49,7 @@ fn exercise2(input: &String) -> usize {
             antinodes.extend(get_antinodes2(
                 &combination[0].borrow(),
                 &combination[1].borrow(),
+                &map,
             ));
         }
     }
@@ -70,26 +71,28 @@ fn get_antinodes1(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
     ]
 }
 
-fn get_antinodes2(antenna1: &Point, antenna2: &Point) -> Vec<Point> {
-    let row_diff: i32 = antenna2.row - antenna1.row;
-    let col_diff: i32 = antenna2.col - antenna1.col;
+fn get_antinodes2(antenna1: &Point, antenna2: &Point, map: &Map) -> Vec<Point> {
+    let row_diff = antenna2.row - antenna1.row;
+    let col_diff = antenna2.col - antenna1.col;
+    let mut antinodes = get_points_in_line(antenna1, row_diff, col_diff, map);
+    antinodes.extend(get_points_in_line(antenna1, -row_diff, -col_diff, map));
+    antinodes
+}
 
-    (0..1000)
-        .flat_map(|i| {
-            [
-                Point::new(
-                    antenna1.row - row_diff * i,
-                    antenna1.col - col_diff * i,
-                    '#',
-                ),
-                Point::new(
-                    antenna1.row + row_diff * i,
-                    antenna1.col + col_diff * i,
-                    '#',
-                ),
-            ]
-        })
-        .collect()
+fn get_points_in_line(start: &Point, row_diff: i32, col_diff: i32, map: &Map) -> Vec<Point> {
+    let mut points = Vec::new();
+    let mut row = start.row;
+    let mut col = start.col;
+    loop {
+        let point = Point::new(row, col, '#');
+        if !map.is_in(&point) {
+            break;
+        }
+        points.push(point);
+        row += row_diff;
+        col += col_diff;
+    }
+    points
 }
 
 struct Map {
