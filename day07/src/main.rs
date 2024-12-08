@@ -3,7 +3,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    // println!("exercise 2: {}", exercise2(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 /**
@@ -18,32 +18,56 @@ fn exercise1(input: &String) -> i64 {
     for line in input.lines() {
         let target = parse_target(line);
         let numbers = parse_numbers(line);
-        let mut punch_card: usize = 2_usize.pow(numbers.len() as u32 - 1);
 
-        loop {
-            let operator = Operator::new(punch_card, &numbers);
-            if operator.calculate() == target {
-                res += target;
-                break;
-            }
-            if punch_card == 0 {
-                break;
-            }
-            punch_card -= 1;
+        if test_punch_card(0b1, target, &numbers) {
+            res += target;
         }
     }
     res
 }
 
+fn exercise2(input: &String) -> i64 {
+    let mut res: i64 = 0;
+
+    for line in input.lines() {
+        let target = parse_target(line);
+        let numbers = parse_numbers(line);
+
+        if test_punch_card(0b11, target, &numbers) {
+            res += target;
+        }
+    }
+    res
+}
+
+fn test_punch_card(mask: usize, target: i64, numbers: &Vec<i64>) -> bool {
+    let mut punch_card: usize = (mask + 1).pow(numbers.len() as u32 - 1);
+
+    loop {
+        let operator = Operator::new(punch_card, mask, &numbers);
+        if operator.calculate() == target {
+            return true;
+        }
+        if punch_card == 0 {
+            return false;
+        }
+        punch_card -= 1;
+    }
+}
+
 struct Operator<'a> {
     punch_card: usize,
+    mask: usize,
+    window: usize,
     numbers: &'a Vec<i64>,
 }
 
 impl<'a> Operator<'a> {
-    fn new(punch_card: usize, numbers: &'a Vec<i64>) -> Self {
+    fn new(punch_card: usize, mask: usize, numbers: &'a Vec<i64>) -> Self {
         Operator {
             punch_card,
+            mask,
+            window: (mask + 1) / 2,
             numbers,
         }
     }
@@ -54,14 +78,19 @@ impl<'a> Operator<'a> {
         }
         let mut res: i64 = self.numbers[0];
         for (i, number) in self.numbers.iter().skip(1).enumerate() {
-            match (self.punch_card >> i) & 1 {
-                0 => res += number,
-                1 => res *= number,
-                _ => panic!(),
+            match (self.punch_card >> (i * self.window)) & self.mask {
+                0b00 => res += number,
+                0b01 => res *= number,
+                0b10 | 0b11 => res = concat(res, *number),
+                _ => panic!("Unsupported punch card"),
             };
         }
         res
     }
+}
+
+fn concat(a: i64, b: i64) -> i64 {
+    format!("{}{}", a, b).parse().unwrap()
 }
 
 fn parse_target(line: &str) -> i64 {
@@ -86,10 +115,10 @@ mod test {
         assert_eq!(res, 3749);
     }
 
-    // #[test]
-    // fn test_ex2() {
-    //     let input = input::read_example();
-    //     let res = exercise2(&input);
-    //     assert_eq!(res, 6);
-    // }
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 11387);
+    }
 }
