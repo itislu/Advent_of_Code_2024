@@ -1,3 +1,4 @@
+use core::fmt;
 use utils::input;
 
 fn main() {
@@ -17,6 +18,7 @@ fn exercise1(input: &str) -> usize {
             break;
         }
     }
+    println!("DISK:\n{}", disk);
     res
 }
 
@@ -72,6 +74,15 @@ impl Disk {
     }
 }
 
+impl fmt::Display for Disk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for byte in &self.data {
+            write!(f, "{}", byte)?;
+        }
+        Ok(())
+    }
+}
+
 struct Byte {
     file_id: Option<usize>,
     index: usize,
@@ -84,6 +95,16 @@ impl Byte {
 
     fn is_file(&self) -> bool {
         self.file_id.is_some()
+    }
+}
+
+impl fmt::Display for Byte {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(file_id) = self.file_id {
+            write!(f, "{}", file_id)
+        } else {
+            write!(f, ".")
+        }
     }
 }
 
