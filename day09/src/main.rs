@@ -28,8 +28,7 @@ struct Disk {
     data: Vec<Byte>,
     first_free_byte: usize,
     last_file_byte: usize,
-    // first_free_range: usize,
-    // last_file_range: usize,
+    max_file_id: usize,
     size: usize,
 }
 
@@ -39,8 +38,7 @@ impl Disk {
             data: Vec::new(),
             first_free_byte: 0,
             last_file_byte: 0,
-            // first_free_range: 0,
-            // last_file_range: 0,
+            max_file_id: 0,
             size: 0,
         };
         let mut index: usize = 0;
@@ -55,6 +53,9 @@ impl Disk {
                 disk.data.push(Byte::new(file_id, index));
                 index += 1;
             }
+            if let Some(file_id) = file_id {
+                disk.max_file_id = file_id;
+            }
         }
         disk.size = disk.data.len();
         Disk::update(&mut disk);
@@ -68,15 +69,16 @@ impl Disk {
     }
 
     fn defragment(&mut self) {
-        let mut end: usize = self.size;
-        while let Some(file_range) = self.last_file_range(end) {
-            let range_len = file_range.len();
-            if let Some(free_range) = self.first_free_range(range_len) {
-                for (free_idx, file_idx) in free_range.zip(file_range) {
-                    self.swap(free_idx, file_idx);
+        println!("BEFORE:\n{}", *self);
+        for file_id in (0..=self.max_file_id).rev() {
+            if let Some(file_range) = self.get_file_range(file_id) {
+                if let Some(free_range) = self.first_free_range(file_range.len()) {
+                    for (free_idx, file_idx) in free_range.zip(file_range) {
+                        self.swap(free_idx, file_idx);
+                    }
                 }
             }
-            end -= range_len;
+            println!("after file_id {}:\n{}", file_id, *self);
         }
     }
 
@@ -144,16 +146,17 @@ impl Disk {
         }
     }
 
-    fn last_file_range(&self, mut end: usize) -> Option<std::ops::Range<usize>> {
-        let last_file_byte = self.last_file_byte(end)?;
-        end = last_file_byte.index + 1;
-        let mut start = end - 1;
-        while start > 0
-            && self.data[start].is_file()
-            && self.data[start].file_id == last_file_byte.file_id
-        {
-            start -= 1;
-        }
+    fn get_file_range(&self, file_id: usize) -> Option<std::ops::Range<usize>> {
+        let start = self
+            .data
+            .iter()
+            .find(|byte| byte.is_file_id(file_id))?
+            .index;
+        let end = start
+            + self.data[start..]
+                .iter()
+                .take_while(|byte| byte.is_file_id(file_id))
+                .count();
         Some(start..end)
     }
 }
@@ -179,6 +182,10 @@ impl Byte {
 
     fn is_file(&self) -> bool {
         self.file_id.is_some()
+    }
+
+    fn is_file_id(&self, file_id: usize) -> bool {
+        self.is_file() && self.file_id.unwrap() == file_id
     }
 }
 
