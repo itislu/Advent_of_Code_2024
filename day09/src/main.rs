@@ -5,6 +5,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
@@ -15,10 +16,20 @@ fn exercise1(input: &str) -> usize {
     disk.checksum()
 }
 
+fn exercise2(input: &str) -> usize {
+    let mut disk = Disk::new(input);
+
+    disk.defragment();
+    println!("DISK:\n{}", disk);
+    disk.checksum()
+}
+
 struct Disk {
     data: Vec<Byte>,
     first_free_byte: usize,
     last_file_byte: usize,
+    // first_free_range: usize,
+    // last_file_range: usize,
     size: usize,
 }
 
@@ -28,6 +39,8 @@ impl Disk {
             data: Vec::new(),
             first_free_byte: 0,
             last_file_byte: 0,
+            // first_free_range: 0,
+            // last_file_range: 0,
             size: 0,
         };
         let mut index: usize = 0;
@@ -51,6 +64,19 @@ impl Disk {
     fn partition(&mut self) {
         while self.first_free_byte < self.last_file_byte {
             self.swap(self.first_free_byte, self.last_file_byte);
+        }
+    }
+
+    fn defragment(&mut self) {
+        let mut end: usize = self.size;
+        while let Some(file_range) = self.last_file_range(end) {
+            let range_len = file_range.len();
+            if let Some(free_range) = self.first_free_range(range_len) {
+                for (free_idx, file_idx) in free_range.zip(file_range) {
+                    self.swap(free_idx, file_idx);
+                }
+            }
+            end -= range_len;
         }
     }
 
@@ -99,6 +125,37 @@ impl Disk {
             .skip(self.size.checked_sub(end)?)
             .find(|byte| byte.is_file())
     }
+
+    fn first_free_range(&self, size: usize) -> Option<std::ops::Range<usize>> {
+        let mut start: usize = 0;
+        loop {
+            start = self.first_free_byte(start)?.index;
+            let mut end = start;
+            while end < self.size && !self.data[end].is_file() {
+                end += 1;
+            }
+            if end - start >= size {
+                return Some(start..end);
+            }
+            if end == self.size {
+                return None;
+            }
+            start = end;
+        }
+    }
+
+    fn last_file_range(&self, mut end: usize) -> Option<std::ops::Range<usize>> {
+        let last_file_byte = self.last_file_byte(end)?;
+        end = last_file_byte.index + 1;
+        let mut start = end - 1;
+        while start > 0
+            && self.data[start].is_file()
+            && self.data[start].file_id == last_file_byte.file_id
+        {
+            start -= 1;
+        }
+        Some(start..end)
+    }
 }
 
 impl fmt::Display for Disk {
@@ -144,5 +201,12 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input);
         assert_eq!(res, 1928);
+    }
+
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 2858);
     }
 }
