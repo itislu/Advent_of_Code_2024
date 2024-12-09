@@ -7,19 +7,11 @@ fn main() {
 }
 
 fn exercise1(input: &str) -> usize {
-    let mut res: usize = 0;
     let mut disk = Disk::new(input);
 
     disk.partition();
-    for byte in &disk.data {
-        if let Some(file_id) = byte.file_id {
-            res += byte.index * file_id;
-        } else {
-            break;
-        }
-    }
     println!("DISK:\n{}", disk);
-    res
+    disk.checksum()
 }
 
 struct Disk {
@@ -71,6 +63,16 @@ impl Disk {
             self.data[self.first_free].index = self.first_free;
             self.data[self.last_file].index = self.last_file;
         }
+    }
+
+    fn checksum(&self) -> usize {
+        let mut checksum: usize = 0;
+        for i in 0..=self.last_file {
+            if let Some(file_id) = self.data[i].file_id {
+                checksum += i * file_id;
+            }
+        }
+        checksum
     }
 }
 
