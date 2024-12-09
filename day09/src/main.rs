@@ -1,4 +1,5 @@
 use core::fmt;
+use std::mem::swap;
 use utils::input;
 
 fn main() {
@@ -16,14 +17,19 @@ fn exercise1(input: &str) -> usize {
 
 struct Disk {
     data: Vec<Byte>,
-    first_free: usize,
-    last_file: usize,
+    first_free_byte: usize,
+    last_file_byte: usize,
     size: usize,
 }
 
 impl Disk {
     fn new(input: &str) -> Self {
-        let mut data: Vec<Byte> = Vec::new();
+        let mut disk = Disk {
+            data: Vec::new(),
+            first_free_byte: 0,
+            last_file_byte: 0,
+            size: 0,
+        };
         let mut index: usize = 0;
 
         for (i, ch) in input.chars().enumerate() {
@@ -33,46 +39,65 @@ impl Disk {
                 _ => panic!(),
             };
             for _ in 0..ch.to_digit(10).unwrap() {
-                data.push(Byte::new(file_id, index));
+                disk.data.push(Byte::new(file_id, index));
                 index += 1;
             }
         }
-        Disk {
-            first_free: data.iter().find(|byte| !byte.is_file()).unwrap().index,
-            last_file: data.iter().rev().find(|byte| byte.is_file()).unwrap().index,
-            size: data.len(),
-            data,
-        }
-    }
-
-    fn first_free(&mut self) -> &Byte {
-        let first_free = self.data.iter().find(|byte| !byte.is_file()).unwrap();
-        self.first_free = first_free.index;
-        first_free
-    }
-
-    fn last_file(&mut self) -> &Byte {
-        let last_file = self.data.iter().rev().find(|byte| byte.is_file()).unwrap();
-        self.last_file = last_file.index;
-        last_file
+        disk.size = disk.data.len();
+        Disk::update(&mut disk);
+        disk
     }
 
     fn partition(&mut self) {
-        while self.first_free().index < self.last_file().index {
-            self.data.swap(self.first_free, self.last_file);
-            self.data[self.first_free].index = self.first_free;
-            self.data[self.last_file].index = self.last_file;
+        while self.first_free_byte < self.last_file_byte {
+            self.swap(self.first_free_byte, self.last_file_byte);
         }
     }
 
     fn checksum(&self) -> usize {
         let mut checksum: usize = 0;
-        for i in 0..=self.last_file {
+        for i in 0..=self.last_file_byte {
             if let Some(file_id) = self.data[i].file_id {
                 checksum += i * file_id;
             }
         }
         checksum
+    }
+
+    fn update(&mut self) {
+        if let Some(first_free_byte) = self.first_free_byte(0) {
+            self.first_free_byte = first_free_byte.index;
+        }
+        if let Some(last_file_byte) = self.last_file_byte(self.size) {
+            self.last_file_byte = last_file_byte.index
+        }
+    }
+
+    fn swap(&mut self, mut low: usize, mut high: usize) {
+        if high < low {
+            swap(&mut high, &mut low);
+        }
+        self.data.swap(low, high);
+        self.data[low].index = low;
+        self.data[high].index = high;
+        if low == self.first_free_byte {
+            self.first_free_byte = self.first_free_byte(low).unwrap().index;
+        }
+        if high == self.last_file_byte {
+            self.last_file_byte = self.last_file_byte(high + 1).unwrap().index;
+        }
+    }
+
+    fn first_free_byte(&self, start: usize) -> Option<&Byte> {
+        self.data.iter().skip(start).find(|byte| !byte.is_file())
+    }
+
+    fn last_file_byte(&self, end: usize) -> Option<&Byte> {
+        self.data
+            .iter()
+            .rev()
+            .skip(self.size.checked_sub(end)?)
+            .find(|byte| byte.is_file())
     }
 }
 
