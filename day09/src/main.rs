@@ -69,16 +69,16 @@ impl Disk {
     }
 
     fn defragment(&mut self) {
-        println!("BEFORE:\n{}", *self);
         for file_id in (0..=self.max_file_id).rev() {
             if let Some(file_range) = self.get_file_range(file_id) {
-                if let Some(free_range) = self.first_free_range(file_range.len()) {
-                    for (free_idx, file_idx) in free_range.zip(file_range) {
-                        self.swap(free_idx, file_idx);
+                if let Some(free_range) = self.get_free_range(file_range.len()) {
+                    if free_range.start < file_range.start {
+                        for (free_idx, file_idx) in free_range.zip(file_range) {
+                            self.swap(free_idx, file_idx);
+                        }
                     }
                 }
             }
-            println!("after file_id {}:\n{}", file_id, *self);
         }
     }
 
@@ -128,7 +128,7 @@ impl Disk {
             .find(|byte| byte.is_file())
     }
 
-    fn first_free_range(&self, size: usize) -> Option<std::ops::Range<usize>> {
+    fn get_free_range(&self, size: usize) -> Option<std::ops::Range<usize>> {
         let mut start: usize = 0;
         loop {
             start = self.first_free_byte(start)?.index;
