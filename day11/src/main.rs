@@ -10,10 +10,9 @@ fn main() {
 fn exercise1(input: &str) -> usize {
     let mut res: usize = 0;
     let stones: Vec<usize> = parse_stones(input);
-    let mut cache: HashMap<(usize, usize), usize> = HashMap::new();
 
     for stone in stones {
-        res += split_stone_n_times(stone, 25, &mut cache);
+        res += split_stone_n_times(stone, 25);
     }
     res
 }
@@ -24,14 +23,30 @@ fn exercise2(input: &str) -> usize {
     let mut cache: HashMap<(usize, usize), usize> = HashMap::new();
 
     for stone in stones {
-        let tmp = split_stone_n_times(stone, 75, &mut cache);
+        let tmp = split_stone_n_times_cached(stone, 75, &mut cache);
         cache.insert((stone, 75), tmp);
         res += tmp;
     }
     res
 }
 
-fn split_stone_n_times(
+fn split_stone_n_times(mut stone: usize, mut n: usize) -> usize {
+    let mut res: usize = 1;
+    while n > 0 {
+        if stone == 0 {
+            stone = 1;
+        } else if let Some((left, right)) = split_if_even_digits(stone) {
+            res = split_stone_n_times(left, n - 1) + split_stone_n_times(right, n - 1);
+            break;
+        } else {
+            stone *= 2024;
+        }
+        n -= 1;
+    }
+    res
+}
+
+fn split_stone_n_times_cached(
     mut stone: usize,
     mut n: usize,
     cache: &mut HashMap<(usize, usize), usize>,
@@ -44,9 +59,9 @@ fn split_stone_n_times(
         if stone == 0 {
             stone = 1;
         } else if let Some((left, right)) = split_if_even_digits(stone) {
-            let res_left = split_stone_n_times(left, n - 1, cache);
+            let res_left = split_stone_n_times_cached(left, n - 1, cache);
             cache.insert((left, n - 1), res_left);
-            let res_right = split_stone_n_times(right, n - 1, cache);
+            let res_right = split_stone_n_times_cached(right, n - 1, cache);
             cache.insert((right, n - 1), res_right);
             res = res_left + res_right;
             break;
