@@ -3,32 +3,50 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
-    let mut stones: Vec<usize> = parse_stones(input);
+    let mut res: usize = 0;
+    let stones: Vec<usize> = parse_stones(input);
 
-    for _ in 0..25 {
-        let mut new_stones: Vec<usize> = Vec::with_capacity(stones.len());
-        for stone in stones {
-            if stone == 0 {
-                new_stones.push(1);
-            } else if let Some(split) = split_if_even_digits(stone) {
-                split.iter().for_each(|&n| new_stones.push(n));
-            } else {
-                new_stones.push(stone * 2024);
-            }
-        }
-        stones = new_stones;
+    for stone in stones {
+        res += split_stone_n_times(stone, 25);
     }
-    stones.len()
+    res
 }
 
-fn split_if_even_digits(num: usize) -> Option<[usize; 2]> {
+fn exercise2(input: &str) -> usize {
+    let mut res: usize = 0;
+    let stones: Vec<usize> = parse_stones(input);
+
+    for stone in stones {
+        res += split_stone_n_times(stone, 75);
+    }
+    res
+}
+
+fn split_stone_n_times(mut stone: usize, mut n: usize) -> usize {
+    let mut res: usize = 1;
+    while n > 0 {
+        if stone == 0 {
+            stone = 1;
+        } else if let Some((left, right)) = split_if_even_digits(stone) {
+            res = split_stone_n_times(left, n - 1) + split_stone_n_times(right, n - 1);
+            break;
+        } else {
+            stone *= 2024;
+        }
+        n -= 1;
+    }
+    res
+}
+
+fn split_if_even_digits(num: usize) -> Option<(usize, usize)> {
     let string = num.to_string();
     if string.len() % 2 == 0 {
         let (left, right) = string.split_at(string.len() / 2);
-        Some([left.parse().unwrap(), right.parse().unwrap()])
+        Some((left.parse().unwrap(), right.parse().unwrap()))
     } else {
         None
     }
@@ -50,5 +68,12 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input);
         assert_eq!(res, 55312);
+    }
+
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        println!("{}", res);
     }
 }
