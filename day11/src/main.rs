@@ -28,7 +28,7 @@ fn exercise2(input: &str) -> usize {
         cache.insert((stone, 75), tmp);
         res += tmp;
     }
-    println!("{}", tracker);
+    println!("\n{}", tracker);
     res
 }
 
@@ -55,7 +55,7 @@ fn split_stone_n_times_cached(
     tracker: &mut Tracker,
 ) -> usize {
     if let Some(cached_result) = cache.get(&(stone, n)) {
-        tracker.cache_hit(*cached_result, stone, n);
+        tracker.cache_hit(n);
         return *cached_result;
     } else {
         tracker.cache_miss();
@@ -116,18 +116,13 @@ impl Tracker {
         }
     }
 
-    fn cache_hit(&mut self, cached_result: usize, stone: usize, iter_left: usize) {
+    fn cache_hit(&mut self, iter_left: usize) {
         self.cache_hits += 1;
         self.saved_iterations_total += iter_left;
-        println!(
-            "cached: {}, for stone value: {}, saved iterations: {}, saved iterations total: {}, cache hits: {}, unique stones: {}",
-            cached_result, stone, iter_left, self.saved_iterations_total, self.cache_hits, self.unique_stones.len()
-        );
     }
 
     fn cache_miss(&mut self) {
         self.cache_misses += 1;
-        println!("cache misses: {}", self.cache_misses);
     }
 }
 
