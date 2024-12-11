@@ -1,38 +1,43 @@
-use std::collections::HashSet;
+use itertools::Itertools;
 use strum::IntoEnumIterator;
 use utils::input;
 
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
     let mut map = Map::new(input);
-    let mut res: usize = 0;
 
-    println!("MAP:\n{}", map);
     for start in map.starts.clone() {
         let start_cell = map.at(&start).unwrap().clone();
-        res += hike(&mut map, &start_cell, &start_cell);
+        hike(&mut map, &start_cell, &start_cell);
     }
-    res
+    map.trails.iter().unique().count()
 }
 
-fn hike(map: &mut Map, start: &Cell, from: &Cell) -> usize {
-    let mut res: usize = 0;
+fn exercise2(input: &str) -> usize {
+    let mut map = Map::new(input);
+
+    for start in map.starts.clone() {
+        let start_cell = map.at(&start).unwrap().clone();
+        hike(&mut map, &start_cell, &start_cell);
+    }
+    map.trails.len()
+}
+
+fn hike(map: &mut Map, start: &Cell, from: &Cell) {
     for direction in Direction::iter() {
         if let Some(to) = map.try_move(&from, direction) {
             if to.value == 9 {
-                if map.trails.insert((start.pos, to.pos)) {
-                    res += 1;
-                }
+                map.trails.push((start.pos, to.pos));
             } else {
-                res += hike(map, &start, &to.clone());
+                hike(map, &start, &to.clone());
             }
         }
     }
-    res
 }
 
 #[derive(strum_macros::EnumIter)]
@@ -43,7 +48,7 @@ enum Direction {
     Left,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 struct Position {
     row: usize,
     col: usize,
@@ -88,7 +93,7 @@ impl Cell {
 struct Map {
     grid: Vec<Vec<Cell>>,
     starts: Vec<Position>,
-    trails: HashSet<(Position, Position)>,
+    trails: Vec<(Position, Position)>,
     height: usize,
     width: usize,
 }
@@ -114,10 +119,19 @@ impl Map {
             .collect();
         Map {
             starts,
-            trails: HashSet::new(),
+            trails: Vec::new(),
             height: grid.len(),
             width: grid[0].len(),
             grid,
+        }
+    }
+
+    fn try_move(&self, from: &Cell, direction: Direction) -> Option<&Cell> {
+        let to = self.at(&from.pos.to(direction)?)?;
+        if to.value == from.value + 1 {
+            Some(to)
+        } else {
+            None
         }
     }
 
@@ -128,15 +142,6 @@ impl Map {
     fn at(&self, pos: &Position) -> Option<&Cell> {
         if self.is_in(pos) {
             Some(&self.grid[pos.row][pos.col])
-        } else {
-            None
-        }
-    }
-
-    fn try_move(&self, from: &Cell, direction: Direction) -> Option<&Cell> {
-        let to = self.at(&from.pos.to(direction)?)?;
-        if to.value == from.value + 1 {
-            Some(to)
         } else {
             None
         }
@@ -164,5 +169,12 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input);
         assert_eq!(res, 36);
+    }
+
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 81);
     }
 }

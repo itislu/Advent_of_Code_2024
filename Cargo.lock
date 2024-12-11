@@ -82,6 +82,7 @@ dependencies = [
 name = "day10"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "strum",
  "strum_macros",
  "utils",
