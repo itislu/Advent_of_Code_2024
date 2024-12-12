@@ -119,9 +119,7 @@ impl Region {
                     .count()
             })
             .sum();
-
         let sides = Region::count_sides(&tiles, map);
-
         Region {
             tiles,
             tile_type,
@@ -141,10 +139,10 @@ impl Region {
                 if seen.remove(&tile.pos) {
                     if Region::is_edge(&tile, direction, tiles, map) {
                         sides += 1;
-                        println!(
-                            "found new side for: {}, at: {}, direction: {}",
-                            tile.tile_type, tile.pos, direction
-                        );
+                        // println!(
+                        //     "found new side for: {}, at: {}, direction: {}",
+                        //     tile.tile_type, tile.pos, direction
+                        // );
 
                         for side_direction in direction.side_directions() {
                             let mut cur = tile.clone();
@@ -271,7 +269,7 @@ impl Map {
             if let Some(region_tiles) = Region::collect(&map, &tile.pos, &mut tiles_without_regions)
             {
                 let region = Region::new(region_tiles, &map);
-                println!("new region: {}", region);
+                // println!("new region: {}", region);
                 map.regions.push(region);
             }
         }
@@ -279,7 +277,6 @@ impl Map {
         map
     }
 
-    //TODO Change to return an iterator
     fn get_neighbours(&self, tile: &Tile) -> Vec<&Rc<RefCell<Tile>>> {
         let mut neighbours: Vec<&Rc<RefCell<Tile>>> = Vec::new();
 
