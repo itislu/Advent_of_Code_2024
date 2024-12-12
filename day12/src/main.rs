@@ -1,6 +1,5 @@
 use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
+    cell::RefCell,
     collections::{HashMap, HashSet},
     rc::Rc,
 };
@@ -72,30 +71,30 @@ impl std::fmt::Debug for Tile {
 }
 
 struct Region {
-    tile_type: char,
     tiles: HashMap<Position, Rc<RefCell<Tile>>>,
+    tile_type: char,
     area: usize,
     perimiter: usize,
 }
 
 impl Region {
-    fn new(tiles: Vec<Rc<RefCell<Tile>>>, map: &Map) -> Self {
-        println!("new region: {:?}", tiles);
-        let tile_type = tiles[0].as_ref().borrow().tile_type;
+    fn new(tiles: HashMap<Position, Rc<RefCell<Tile>>>, map: &Map) -> Self {
+        let tile_type = tiles.values().nth(0).unwrap().as_ref().borrow().tile_type;
+        let area = tiles.len();
         let perimiter: usize = tiles
-            .iter()
-            .map(|tile| {
+            .values()
+            .map(|tile| {4 -
                 map.get_neighbours(tile)
                     .iter()
-                    .filter(|neighbour| neighbour.as_ref().borrow().tile_type != tile_type)
+                    .filter(|neighbour| neighbour.as_ref().borrow().tile_type == tile_type)
                     .count()
             })
             .sum();
         Region {
-            tile_type,
-            area: tiles.len(),
-            perimiter,
             tiles,
+            tile_type,
+            area,
+            perimiter,
         }
     }
 
@@ -103,11 +102,12 @@ impl Region {
         map: &Map,
         pos: &Position,
         tiles_without_regions: &mut HashSet<Position>,
-    ) -> Option<Vec<Rc<RefCell<Tile>>>> {
+    ) -> Option<HashMap<Position, Rc<RefCell<Tile>>>> {
         if let Some(tile_rc) = map.at(pos) {
             let tile = tile_rc.as_ref().borrow();
             if tiles_without_regions.remove(&tile.pos) {
-                let mut region_tiles: Vec<Rc<RefCell<Tile>>> = vec![Rc::clone(&tile_rc)];
+                let mut region_tiles: HashMap<Position, Rc<RefCell<Tile>>> = HashMap::new();
+                region_tiles.insert(tile.pos, Rc::clone(&tile_rc));
                 for neighbour_rc in map.get_neighbours(&tile_rc) {
                     let neighbour = neighbour_rc.as_ref().borrow();
                     if neighbour.tile_type == tile.tile_type {
@@ -125,6 +125,19 @@ impl Region {
         } else {
             None
         }
+    }
+}
+
+impl std::fmt::Display for Region {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} * {}, area: {}, perimiter: {}",
+            self.tiles.len(),
+            self.tile_type,
+            self.area,
+            self.perimiter
+        )
     }
 }
 
@@ -171,13 +184,16 @@ impl Map {
         {
             if let Some(region_tiles) = Region::collect(&map, &tile.pos, &mut tiles_without_regions)
             {
-                map.regions.push(Region::new(region_tiles, &map));
+                let region = Region::new(region_tiles, &map);
+                println!("new region: {}", region);
+                map.regions.push(region);
             }
         }
         map.tiles_without_regions = tiles_without_regions;
         map
     }
 
+    //TODO Change to return an iterator
     fn get_neighbours(&self, tile: &RefCell<Tile>) -> Vec<&Rc<RefCell<Tile>>> {
         let mut neighbours: Vec<&Rc<RefCell<Tile>>> = Vec::new();
 
