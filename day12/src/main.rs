@@ -4,12 +4,13 @@ use std::{
     rc::Rc,
 };
 use strum::IntoEnumIterator;
+use strum_macros::Display;
 use utils::input;
 
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    // println!("exercise 2: {}", exercise2(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
@@ -21,12 +22,31 @@ fn exercise1(input: &str) -> usize {
         .sum()
 }
 
-#[derive(strum_macros::EnumIter)]
+fn exercise2(input: &str) -> usize {
+    let map = Map::new(input);
+
+    map.regions
+        .iter()
+        .map(|region| region.area * region.sides)
+        .sum()
+}
+
+#[derive(strum_macros::EnumIter, Clone, Copy, Display)]
 enum Direction {
     Up,
     Right,
     Down,
     Left,
+}
+
+impl Direction {
+    fn side_directions(&self) -> impl Iterator<Item = Direction> {
+        match self {
+            Direction::Up | Direction::Down => [Direction::Left, Direction::Right],
+            Direction::Left | Direction::Right => [Direction::Up, Direction::Down],
+        }
+        .into_iter()
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
@@ -50,6 +70,13 @@ impl Position {
     }
 }
 
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.row, self.col)
+    }
+}
+
+#[derive(Clone)]
 struct Tile {
     pos: Position,
     tile_type: char,
@@ -75,26 +102,84 @@ struct Region {
     tile_type: char,
     area: usize,
     perimiter: usize,
+    sides: usize,
 }
 
 impl Region {
     fn new(tiles: HashMap<Position, Rc<RefCell<Tile>>>, map: &Map) -> Self {
-        let tile_type = tiles.values().nth(0).unwrap().as_ref().borrow().tile_type;
+        let tile_type = tiles.values().nth(0).unwrap().borrow().tile_type;
         let area = tiles.len();
         let perimiter: usize = tiles
             .values()
-            .map(|tile| {4 -
-                map.get_neighbours(tile)
+            .map(|tile| {
+                4 - map
+                    .get_neighbours(&tile.borrow())
                     .iter()
-                    .filter(|neighbour| neighbour.as_ref().borrow().tile_type == tile_type)
+                    .filter(|neighbour| neighbour.borrow().tile_type == tile_type)
                     .count()
             })
             .sum();
+
+        let sides = Region::count_sides(&tiles, map);
+
         Region {
             tiles,
             tile_type,
             area,
             perimiter,
+            sides,
+        }
+    }
+
+    fn count_sides(tiles: &HashMap<Position, Rc<RefCell<Tile>>>, map: &Map) -> usize {
+        let mut sides: usize = 0;
+
+        for direction in Direction::iter() {
+            let mut seen: HashSet<Position> = HashSet::from_iter(tiles.keys().cloned());
+
+            for tile in tiles.values().map(|tile| tile.borrow()) {
+                if seen.remove(&tile.pos) {
+                    let potential_neighbour = map.get_neighbour(&tile, direction);
+                    if potential_neighbour.is_none()
+                        || !tiles.contains_key(&potential_neighbour.unwrap().borrow().pos)
+                    {
+                        sides += 1;
+                        println!(
+                            "found new side for: {}, at: {}, direction: {}",
+                            tile.tile_type, tile.pos, direction
+                        );
+
+                        for side_direction in direction.side_directions() {
+                            let mut cur = tile.clone();
+
+                            while let Some(neighbour) = map.get_neighbour(&cur, side_direction) {
+                                let neighbour = neighbour.as_ref().borrow();
+                                if !seen.remove(&neighbour.pos) {
+                                    break;
+                                }
+                                cur = neighbour.clone();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        sides
+    }
+
+    fn is_edge(
+        tile: &Tile,
+        direction: Direction,
+        tiles: &HashMap<Position, Rc<RefCell<Tile>>>,
+        map: &Map,
+    ) -> bool {
+        let potential_neighbour = map.get_neighbour(&tile, direction);
+        if potential_neighbour.is_none()
+            || !tiles.contains_key(&potential_neighbour.unwrap().borrow().pos)
+        {
+            true
+        } else {
+            false
         }
     }
 
@@ -108,7 +193,8 @@ impl Region {
             if tiles_without_regions.remove(&tile.pos) {
                 let mut region_tiles: HashMap<Position, Rc<RefCell<Tile>>> = HashMap::new();
                 region_tiles.insert(tile.pos, Rc::clone(&tile_rc));
-                for neighbour_rc in map.get_neighbours(&tile_rc) {
+
+                for neighbour_rc in map.get_neighbours(&tile) {
                     let neighbour = neighbour_rc.as_ref().borrow();
                     if neighbour.tile_type == tile.tile_type {
                         if let Some(new_tiles) =
@@ -132,11 +218,12 @@ impl std::fmt::Display for Region {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} * {}, area: {}, perimiter: {}",
+            "{} * {}, area: {}, perimiter: {}, sides: {}",
             self.tiles.len(),
             self.tile_type,
             self.area,
-            self.perimiter
+            self.perimiter,
+            self.sides,
         )
     }
 }
@@ -194,17 +281,23 @@ impl Map {
     }
 
     //TODO Change to return an iterator
-    fn get_neighbours(&self, tile: &RefCell<Tile>) -> Vec<&Rc<RefCell<Tile>>> {
+    fn get_neighbours(&self, tile: &Tile) -> Vec<&Rc<RefCell<Tile>>> {
         let mut neighbours: Vec<&Rc<RefCell<Tile>>> = Vec::new();
 
         for direction in Direction::iter() {
-            if let Some(new_pos) = tile.borrow().pos.to(direction) {
-                if let Some(neighbour) = self.at(&new_pos) {
-                    neighbours.push(neighbour);
-                }
+            if let Some(neighbour) = self.get_neighbour(tile, direction) {
+                neighbours.push(neighbour);
             }
         }
         neighbours
+    }
+
+    fn get_neighbour(&self, tile: &Tile, direction: Direction) -> Option<&Rc<RefCell<Tile>>> {
+        if let Some(new_pos) = tile.pos.to(direction) {
+            self.at(&new_pos)
+        } else {
+            None
+        }
     }
 
     fn is_in(&self, pos: &Position) -> bool {
@@ -231,10 +324,10 @@ mod test {
         assert_eq!(res, 1930);
     }
 
-    // #[test]
-    // fn test_ex2() {
-    //     let input = input::read_example();
-    //     let res = exercise2(&input);
-    //     assert_eq!(res, 81);
-    // }
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 1206);
+    }
 }
