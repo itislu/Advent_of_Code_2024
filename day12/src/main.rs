@@ -1,5 +1,9 @@
-use std::{cell::RefCell, rc::Rc};
-
+use std::{
+    borrow::Borrow,
+    cell::{Ref, RefCell},
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 use strum::IntoEnumIterator;
 use utils::input;
 
@@ -26,6 +30,7 @@ enum Direction {
     Left,
 }
 
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 struct Position {
     row: usize,
     col: usize,
@@ -49,7 +54,6 @@ impl Position {
 struct Tile {
     pos: Position,
     tile_type: char,
-    is_in_region: bool,
 }
 
 impl Tile {
@@ -57,27 +61,33 @@ impl Tile {
         Tile {
             pos: Position::new(row, col),
             tile_type,
-            is_in_region: false,
         }
+    }
+}
+
+impl std::fmt::Debug for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tile_type)
     }
 }
 
 struct Region {
     tile_type: char,
-    tiles: Vec<Rc<RefCell<Tile>>>,
+    tiles: HashMap<Position, Rc<RefCell<Tile>>>,
     area: usize,
     perimiter: usize,
 }
 
 impl Region {
     fn new(tiles: Vec<Rc<RefCell<Tile>>>, map: &Map) -> Self {
+        println!("new region: {:?}", tiles);
         let tile_type = tiles[0].as_ref().borrow().tile_type;
         let perimiter: usize = tiles
             .iter()
             .map(|tile| {
                 map.get_neighbours(tile)
                     .iter()
-                    .filter(|neighbour| neighbour.borrow().tile_type != tile_type)
+                    .filter(|neighbour| neighbour.as_ref().borrow().tile_type != tile_type)
                     .count()
             })
             .sum();
@@ -88,10 +98,39 @@ impl Region {
             tiles,
         }
     }
+
+    fn collect(
+        map: &Map,
+        pos: &Position,
+        tiles_without_regions: &mut HashSet<Position>,
+    ) -> Option<Vec<Rc<RefCell<Tile>>>> {
+        if let Some(tile_rc) = map.at(pos) {
+            let tile = tile_rc.as_ref().borrow();
+            if tiles_without_regions.remove(&tile.pos) {
+                let mut region_tiles: Vec<Rc<RefCell<Tile>>> = vec![Rc::clone(&tile_rc)];
+                for neighbour_rc in map.get_neighbours(&tile_rc) {
+                    let neighbour = neighbour_rc.as_ref().borrow();
+                    if neighbour.tile_type == tile.tile_type {
+                        if let Some(new_tiles) =
+                            Region::collect(map, &neighbour.pos, tiles_without_regions)
+                        {
+                            region_tiles.extend(new_tiles);
+                        }
+                    }
+                }
+                Some(region_tiles)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 struct Map {
     grid: Vec<Vec<Rc<RefCell<Tile>>>>,
+    tiles_without_regions: HashSet<Position>,
     regions: Vec<Region>,
     height: usize,
     width: usize,
@@ -99,51 +138,44 @@ struct Map {
 
 impl Map {
     fn new(input: &str) -> Self {
+        let mut map = Map {
+            grid: Vec::new(),
+            tiles_without_regions: HashSet::new(),
+            regions: Vec::new(),
+            height: 0,
+            width: 0,
+        };
+        let mut tiles_without_regions: HashSet<Position> = HashSet::new();
         let grid: Vec<Vec<Rc<RefCell<Tile>>>> = input
             .lines()
             .enumerate()
             .map(|(row, line)| {
                 line.chars()
                     .enumerate()
-                    .map(|(col, ch)| Rc::new(RefCell::new(Tile::new(row, col, ch))))
+                    .map(|(col, ch)| {
+                        let tile = Rc::new(RefCell::new(Tile::new(row, col, ch)));
+                        tiles_without_regions.insert(tile.as_ref().borrow().pos);
+                        tile
+                    })
                     .collect()
             })
             .collect();
-        let mut map = Map {
-            regions: Vec::new(),
-            height: grid.len(),
-            width: grid[0].len(),
-            grid,
-        };
-        map.set_regions();
-        map
-    }
-
-    fn set_regions(&mut self) {
-        for (tile_rc, tile) in self
+        map.height = grid.len();
+        map.width = grid[0].len();
+        map.grid = grid;
+        for tile in map
             .grid
             .iter()
             .flatten()
-            .map(|tile_rc| (tile_rc, tile_rc.as_ref()))
+            .map(|tile_rc| tile_rc.as_ref().borrow())
         {
-            if !tile.borrow().is_in_region {
-                let mut region_tiles: Vec<Rc<RefCell<Tile>>> = vec![Rc::clone(&tile_rc)];
-                tile.borrow_mut().is_in_region = true;
-
-                for (neighbour_rc, neighbour) in self
-                    .get_neighbours(&tile)
-                    .iter()
-                    .map(|neighbour_rc| (neighbour_rc, neighbour_rc.as_ref()))
-                {
-                    if !neighbour.borrow().is_in_region
-                        && neighbour.borrow().tile_type == tile.borrow().tile_type
-                    {
-                        region_tiles.push(Rc::clone(neighbour_rc));
-                    }
-                }
-                self.regions.push(Region::new(region_tiles, self));
+            if let Some(region_tiles) = Region::collect(&map, &tile.pos, &mut tiles_without_regions)
+            {
+                map.regions.push(Region::new(region_tiles, &map));
             }
         }
+        map.tiles_without_regions = tiles_without_regions;
+        map
     }
 
     fn get_neighbours(&self, tile: &RefCell<Tile>) -> Vec<&Rc<RefCell<Tile>>> {
