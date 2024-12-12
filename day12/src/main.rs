@@ -139,10 +139,7 @@ impl Region {
 
             for tile in tiles.values().map(|tile| tile.borrow()) {
                 if seen.remove(&tile.pos) {
-                    let potential_neighbour = map.get_neighbour(&tile, direction);
-                    if potential_neighbour.is_none()
-                        || !tiles.contains_key(&potential_neighbour.unwrap().borrow().pos)
-                    {
+                    if Region::is_edge(&tile, direction, tiles, map) {
                         sides += 1;
                         println!(
                             "found new side for: {}, at: {}, direction: {}",
@@ -154,7 +151,9 @@ impl Region {
 
                             while let Some(neighbour) = map.get_neighbour(&cur, side_direction) {
                                 let neighbour = neighbour.as_ref().borrow();
-                                if !seen.remove(&neighbour.pos) {
+                                if !Region::is_edge(&neighbour, direction, tiles, map)
+                                    || !seen.remove(&neighbour.pos)
+                                {
                                     break;
                                 }
                                 cur = neighbour.clone();
