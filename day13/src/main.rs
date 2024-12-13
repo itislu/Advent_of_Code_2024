@@ -2,16 +2,16 @@ use itertools::Itertools;
 use std::ops::{Add, Mul};
 use utils::input;
 
+const COST_A: i64 = 3;
+const COST_B: i64 = 1;
+const MAX_PRESSES: i64 = 100;
+const GREAT_DISTANCE: i64 = 10000000000000;
+
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
     println!("exercise 2: {}", exercise2(&input));
 }
-
-const COST_A: i64 = 3;
-const COST_B: i64 = 1;
-const MAX_PRESSES: i64 = 100;
-const GREAT_DISTANCE: i64 = 10000000000000;
 
 fn exercise1(input: &str) -> i64 {
     let mut res: i64 = 0;
