@@ -1,7 +1,5 @@
 use utils::input;
 
-const COLUMNS: usize = 101;
-const ROWS: usize = 103;
 const ITERATIONS: usize = 100;
 
 fn main() {
@@ -10,17 +8,15 @@ fn main() {
 }
 
 fn exercise1(input: &str) -> usize {
-    let mut robots: Vec<Robot> = parse_input(input);
+    let mut world = World::new(input);
 
-    for robot in &mut robots {
-        for _ in 0..ITERATIONS {
-            robot.mv();
-        }
+    for _ in 0..ITERATIONS {
+        world.mv_robots();
     }
-    count_quadrant(Quadrant::TopLeft, &robots)
-        * count_quadrant(Quadrant::TopRight, &robots)
-        * count_quadrant(Quadrant::BottomLeft, &robots)
-        * count_quadrant(Quadrant::BottomRight, &robots)
+    world.count_quadrant(Quadrant::TopLeft)
+        * world.count_quadrant(Quadrant::TopRight)
+        * world.count_quadrant(Quadrant::BottomLeft)
+        * world.count_quadrant(Quadrant::BottomRight)
 }
 
 enum Quadrant {
@@ -31,47 +27,73 @@ enum Quadrant {
 }
 
 impl Quadrant {
-    fn is_in(&self, robot: &Robot) -> bool {
+    fn is_in(&self, robot: &Robot, world: &World) -> bool {
         let range_x = match self {
-            Self::TopLeft | Self::BottomLeft => 0..robot.max_x / 2,
-            Self::TopRight | Self::BottomRight => robot.max_x / 2 + 1..robot.max_x,
+            Self::TopLeft | Self::BottomLeft => 0..world.rows / 2,
+            Self::TopRight | Self::BottomRight => world.rows / 2 + 1..world.rows,
         };
         let range_y = match self {
-            Self::TopLeft | Self::TopRight => 0..robot.max_y / 2,
-            Self::BottomLeft | Self::BottomRight => robot.max_y / 2 + 1..robot.max_y,
+            Self::TopLeft | Self::TopRight => 0..world.cols / 2,
+            Self::BottomLeft | Self::BottomRight => world.cols / 2 + 1..world.cols,
         };
-        range_x.contains(&robot.pos_x) && range_y.contains(&robot.pos_y)
+        range_x.contains(&robot.row) && range_y.contains(&robot.col)
     }
 }
 
-fn count_quadrant(quadrant: Quadrant, robots: &Vec<Robot>) -> usize {
-    robots.iter().filter(|robot| quadrant.is_in(robot)).count()
+struct World {
+    robots: Vec<Robot>,
+    rows: i64,
+    cols: i64,
+}
+
+impl World {
+    fn new(input: &str) -> Self {
+        let mut world = Self {
+            robots: parse_input(input),
+            rows: 0,
+            cols: 0,
+        };
+        world.rows = world.robots.iter().map(|robot| robot.row).max().unwrap() + 1;
+        world.cols = world.robots.iter().map(|robot| robot.col).max().unwrap() + 1;
+        world
+    }
+
+    fn mv_robots(&mut self) {
+        for robot in &mut self.robots {
+            robot.mv();
+            robot.row = (robot.row + self.rows) % self.rows;
+            robot.col = (robot.col + self.cols) % self.cols;
+        }
+    }
+
+    fn count_quadrant(&self, quadrant: Quadrant) -> usize {
+        self.robots
+            .iter()
+            .filter(|robot| quadrant.is_in(robot, self))
+            .count()
+    }
 }
 
 struct Robot {
-    pos_x: i64,
-    pos_y: i64,
-    vel_x: i64,
-    vel_y: i64,
-    max_x: i64,
-    max_y: i64,
+    row: i64,
+    col: i64,
+    vel_row: i64,
+    vel_col: i64,
 }
 
 impl Robot {
-    fn new(pos_x: i64, pos_y: i64, vel_x: i64, vel_y: i64) -> Self {
+    fn new(row: i64, col: i64, vel_row: i64, vel_col: i64) -> Self {
         Self {
-            pos_x,
-            pos_y,
-            vel_x,
-            vel_y,
-            max_x: COLUMNS as i64,
-            max_y: ROWS as i64,
+            row,
+            col,
+            vel_row,
+            vel_col,
         }
     }
 
     fn mv(&mut self) {
-        self.pos_x = (self.max_x + self.pos_x + self.vel_x) % self.max_x;
-        self.pos_y = (self.max_y + self.pos_y + self.vel_y) % self.max_y;
+        self.row += self.vel_row;
+        self.col += self.vel_col;
     }
 }
 
@@ -79,8 +101,8 @@ fn parse_input(input: &str) -> Vec<Robot> {
     input
         .lines()
         .map(|line| {
-            let (pos_x, pos_y, vel_x, vel_y) = parse_line(line);
-            Robot::new(pos_x, pos_y, vel_x, vel_y)
+            let (row, col, vel_row, vel_col) = parse_line(line);
+            Robot::new(row, col, vel_row, vel_col)
         })
         .collect()
 }
