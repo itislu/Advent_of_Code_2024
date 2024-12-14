@@ -1,13 +1,13 @@
 use utils::input;
 
-const ITERATIONS: usize = 100;
-
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    exercise2(&input);
 }
 
 fn exercise1(input: &str) -> usize {
+    const ITERATIONS: usize = 100;
     let mut world = World::new(input);
 
     for _ in 0..ITERATIONS {
@@ -17,6 +17,28 @@ fn exercise1(input: &str) -> usize {
         * world.count_quadrant(Quadrant::TopRight)
         * world.count_quadrant(Quadrant::BottomLeft)
         * world.count_quadrant(Quadrant::BottomRight)
+}
+
+/*
+The `OFFSET` I got by noticing a kind of rectangle in the output after 2 iterations.
+The `FREQUENCY` this rectangle then occured was after every 101 iterations.
+I just did this 100 times, until it was very apparent that it is iteration #6668 with the christmas tree.
+*/
+fn exercise2(input: &str) {
+    const OFFSET: usize = 2;
+    const FREQUENCY: usize = 101;
+    const FIRST_OCCURANCE: usize = 66;
+    let mut world = World::new(input);
+
+    for _ in 0..OFFSET {
+        world.mv_robots();
+    }
+    for i in 0..=FIRST_OCCURANCE {
+        println!("{}:\n{}\n", i * FREQUENCY + OFFSET, world);
+        for _ in 0..FREQUENCY {
+            world.mv_robots();
+        }
+    }
 }
 
 enum Quadrant {
@@ -71,6 +93,24 @@ impl World {
             .iter()
             .filter(|robot| quadrant.is_in(robot, self))
             .count()
+    }
+}
+
+impl std::fmt::Display for World {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut world: Vec<Vec<char>> = vec![vec!['.'; self.cols as usize]; self.rows as usize];
+
+        for robot in &self.robots {
+            let c: &mut char = &mut world[robot.row as usize][robot.col as usize];
+            *c = match *c {
+                '.' => '1',
+                _ => (*c as u8 + 1) as char,
+            }
+        }
+        for row in world {
+            writeln!(f, "{}", row.iter().collect::<String>())?;
+        }
+        Ok(())
     }
 }
 
