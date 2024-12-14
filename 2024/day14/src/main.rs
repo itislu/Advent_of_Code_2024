@@ -141,7 +141,7 @@ fn parse_input(input: &str) -> Vec<Robot> {
     input
         .lines()
         .map(|line| {
-            let (row, col, vel_row, vel_col) = parse_line(line);
+            let (col, row, vel_col, vel_row) = parse_line(line);
             Robot::new(row, col, vel_row, vel_col)
         })
         .collect()
