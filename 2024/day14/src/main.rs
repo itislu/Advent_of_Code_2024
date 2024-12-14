@@ -3,7 +3,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    exercise2(&input);
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
@@ -19,26 +19,16 @@ fn exercise1(input: &str) -> usize {
         * world.count_quadrant(Quadrant::BottomRight)
 }
 
-/*
-The `OFFSET` I got by noticing a kind of rectangle in the output after 2 iterations.
-The `FREQUENCY` this rectangle then occured was after every 101 iterations.
-I just did this 100 times, until it was very apparent that it is iteration #6668 with the christmas tree.
-*/
-fn exercise2(input: &str) {
-    const OFFSET: usize = 2;
-    const FREQUENCY: usize = 101;
-    const FIRST_OCCURANCE: usize = 66;
+fn exercise2(input: &str) -> usize {
     let mut world = World::new(input);
+    let mut i: usize = 0;
 
-    for _ in 0..OFFSET {
+    while world.any_overlap() {
         world.mv_robots();
+        i += 1;
     }
-    for i in 0..=FIRST_OCCURANCE {
-        println!("{}:\n{}\n", i * FREQUENCY + OFFSET, world);
-        for _ in 0..FREQUENCY {
-            world.mv_robots();
-        }
-    }
+    println!("{}:\n{}", i, world);
+    i
 }
 
 enum Quadrant {
@@ -93,6 +83,19 @@ impl World {
             .iter()
             .filter(|robot| quadrant.is_in(robot, self))
             .count()
+    }
+
+    fn any_overlap(&self) -> bool {
+        let mut world: Vec<Vec<bool>> = vec![vec![false; self.cols as usize]; self.rows as usize];
+
+        for robot in &self.robots {
+            let is_robot = &mut world[robot.row as usize][robot.col as usize];
+            if *is_robot {
+                return true;
+            }
+            *is_robot = true;
+        }
+        false
     }
 }
 
