@@ -187,10 +187,8 @@ impl Robot {
     }
 }
 
-#[allow(dead_code)]
 struct Map {
     grid: Vec<Vec<Object>>,
-    is_wide: bool,
 }
 
 impl Map {
@@ -209,7 +207,7 @@ impl Map {
             }
             grid.push(grid_line);
         }
-        Self { grid, is_wide }
+        Self { grid }
     }
 
     fn can_move(&self, pos: Position, direction: Direction) -> bool {
