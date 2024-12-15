@@ -14,17 +14,7 @@ fn exercise1(input: &str) -> usize {
     while !robot.movements.is_empty() {
         robot.mv(&mut map);
     }
-
-    map.grid
-        .iter()
-        .flatten()
-        .filter_map(|object| {
-            if let ObjectKind::Box(None) = object.kind {
-                return Some(object.gps_coordinate())
-            }
-            None
-        })
-        .sum()
+    map.boxes().map(|object| object.gps_coordinate()).sum()
 }
 
 fn exercise2(input: &str) -> usize {
@@ -34,19 +24,7 @@ fn exercise2(input: &str) -> usize {
     while !robot.movements.is_empty() {
         robot.mv(&mut map);
     }
-
-    map.grid
-        .iter()
-        .flatten()
-        .filter_map(|object| {
-            if let ObjectKind::Box(Some(part)) = object.kind {
-                if part == BoxPart::Left {
-                    return Some(object.gps_coordinate())
-                }
-            }
-            None
-        })
-        .sum()
+    map.boxes().map(|object| object.gps_coordinate()).sum()
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -209,6 +187,7 @@ impl Robot {
     }
 }
 
+#[allow(dead_code)]
 struct Map {
     grid: Vec<Vec<Object>>,
     is_wide: bool,
@@ -261,9 +240,9 @@ impl Map {
                 self.mv_object(new_pos, direction);
                 self.swap(pos, new_pos);
                 if direction.is_vertical() {
-                    let new_pos = part.other(pos).to(direction);
-                    self.mv_object(new_pos, direction);
-                    self.swap(part.other(pos), new_pos);
+                    let other_new_pos = part.other(pos).to(direction);
+                    self.mv_object(other_new_pos, direction);
+                    self.swap(part.other(pos), other_new_pos);
                 }
                 true
             }
@@ -283,6 +262,17 @@ impl Map {
         let tmp = self.at(pos1).kind;
         self.at_mut(pos1).kind = self.at(pos2).kind;
         self.at_mut(pos2).kind = tmp;
+    }
+
+    fn boxes(&self) -> impl Iterator<Item = &Object> {
+        self.grid
+            .iter()
+            .flatten()
+            .filter(|object| match object.kind {
+                ObjectKind::Box(None) => true,
+                ObjectKind::Box(Some(BoxPart::Left)) => true,
+                _ => false,
+            })
     }
 
     fn at(&self, pos: Position) -> &Object {
