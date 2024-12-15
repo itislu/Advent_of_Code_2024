@@ -1,26 +1,25 @@
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use std::collections::VecDeque;
 use utils::input;
 
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
-    // println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
     let mut map = Map::new(input);
+    let mut robot = Robot::new(&map, input);
 
-    while let Some(direction) = map.movements.pop_front() {
-        let robot_pos = map.robot.borrow().pos;
-        map.move_object(robot_pos, direction);
+    while !robot.movements.is_empty() {
+        robot.mv(&mut map);
     }
 
     map.grid
         .iter()
         .flatten()
         .filter_map(|object| {
-            if object.borrow().kind == ObjectKind::Box {
-                Some(object.borrow().gps_coordinate())
+            if object.kind == ObjectKind::Box {
+                Some(object.gps_coordinate())
             } else {
                 None
             }
@@ -60,7 +59,7 @@ impl Position {
         Position { row, col }
     }
 
-    fn get(&self, direction: Direction) -> Self {
+    fn to(&self, direction: Direction) -> Self {
         use Direction::*;
         match direction {
             Up => Self::new(self.row - 1, self.col),
@@ -74,9 +73,9 @@ impl Position {
 #[derive(Clone, Copy, PartialEq)]
 enum ObjectKind {
     Empty,
-    Robot,
     Box,
     Wall,
+    Robot,
 }
 
 impl From<char> for ObjectKind {
@@ -110,68 +109,93 @@ impl Object {
     }
 }
 
-struct Map {
-    grid: Vec<Vec<Rc<RefCell<Object>>>>,
-    robot: Rc<RefCell<Object>>,
+struct Robot {
+    pos: Position,
     movements: VecDeque<Direction>,
+}
+
+impl Robot {
+    fn new(map: &Map, input: &str) -> Self {
+        Self {
+            pos: map
+                .grid
+                .iter()
+                .flatten()
+                .find(|object| object.kind == ObjectKind::Robot)
+                .expect("No robot in map found!")
+                .pos,
+            movements: input
+                .split("\n\n")
+                .skip(1)
+                .collect::<String>()
+                .lines()
+                .flat_map(|line| line.chars())
+                .map(Direction::from)
+                .collect(),
+        }
+    }
+
+    fn mv(&mut self, map: &mut Map) -> bool {
+        if let Some(direction) = self.movements.pop_front() {
+            if map.mv_object(self.pos, direction) {
+                self.pos = self.pos.to(direction);
+                return true;
+            }
+        }
+        false
+    }
+}
+
+struct Map {
+    grid: Vec<Vec<Object>>,
     height: usize,
     width: usize,
 }
 
 impl Map {
     fn new(input: &str) -> Self {
-        let split_input: Vec<&str> = input.split("\n\n").collect();
-        let mut robot_opt: Option<Rc<RefCell<Object>>> = None;
-        let mut grid: Vec<Vec<Rc<RefCell<Object>>>> = Vec::new();
+        let mut grid: Vec<Vec<Object>> = Vec::new();
 
-        for (row, line) in split_input[0].lines().enumerate() {
-            let mut grid_line: Vec<Rc<RefCell<Object>>> = Vec::new();
+        for (row, line) in input.split("\n\n").nth(0).unwrap().lines().enumerate() {
+            let mut grid_line: Vec<Object> = Vec::new();
             for (col, c) in line.chars().enumerate() {
-                let object = Rc::new(RefCell::new(Object::new(c, row, col)));
-                if object.borrow().kind == ObjectKind::Robot {
-                    robot_opt = Some(Rc::clone(&object));
-                }
-                grid_line.push(object);
+                grid_line.push(Object::new(c, row, col));
             }
             grid.push(grid_line);
         }
 
-        let movements: VecDeque<Direction> = split_input[1]
-            .lines()
-            .flat_map(|line| line.chars())
-            .map(Direction::from)
-            .collect();
-
         Self {
-            robot: robot_opt.expect("No robot in map found!"),
-            movements,
             height: grid.len(),
             width: grid[0].len(),
             grid,
         }
     }
 
-    fn move_object(&mut self, pos: Position, direction: Direction) -> bool {
+    fn mv_object(&mut self, pos: Position, direction: Direction) -> bool {
         use ObjectKind::*;
-        let new_pos = pos.get(direction);
-        match self.at(new_pos).borrow().kind {
-            Empty | Robot => {
-                self.swap(pos, new_pos);
-                true
-            }
-            Box => self.move_object(new_pos, direction),
-            Wall => false,
+
+        match self.at(pos).kind {
+            Wall => return false,
+            Empty => return true,
+            Box | Robot => {}
+        };
+        let new_pos = pos.to(direction);
+        if self.mv_object(new_pos, direction) {
+            self.swap(pos, new_pos);
+            true
+        } else {
+            false
         }
     }
 
     fn swap(&mut self, pos1: Position, pos2: Position) {
-        let tmp = self.at(pos1).borrow().kind;
-        self.at(pos1).borrow_mut().kind = self.at(pos2).borrow().kind;
-        self.at(pos2).borrow_mut().kind = tmp;
+        let tmp = self.at(pos1).kind;
+        self.at(pos1).kind = self.at(pos2).kind;
+        self.at(pos2).kind = tmp;
     }
 
-    fn at(&mut self, pos: Position) -> Rc<RefCell<Object>> {
-        Rc::clone(&self.grid[pos.row][pos.col])
+    fn at(&mut self, pos: Position) -> &mut Object {
+        &mut self.grid[pos.row][pos.col]
     }
 }
 
@@ -185,11 +209,4 @@ mod test {
         let res = exercise1(&input);
         assert_eq!(res, 10092);
     }
-
-    // #[test]
-    // fn test_ex2() {
-    //     let input = input::read_example();
-    //     let res = exercise2(&input);
-    //     println!("{}", res);
-    // }
 }
