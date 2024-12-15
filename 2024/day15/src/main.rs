@@ -4,6 +4,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> usize {
@@ -27,6 +28,10 @@ fn exercise1(input: &str) -> usize {
         .sum()
 }
 
+fn exercise2(input: &str) -> usize {
+    0
+}
+
 #[derive(Clone, Copy)]
 enum Direction {
     Up,
@@ -48,7 +53,7 @@ impl From<char> for Direction {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 struct Position {
     row: usize,
     col: usize,
@@ -70,25 +75,17 @@ impl Position {
     }
 }
 
+enum BoxPart {
+    Left,
+    Right,
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum ObjectKind {
     Empty,
-    Box,
     Wall,
+    Box(Position),
     Robot,
-}
-
-impl From<char> for ObjectKind {
-    fn from(c: char) -> Self {
-        use ObjectKind::*;
-        match c {
-            '.' => Empty,
-            'O' => Box,
-            '#' => Wall,
-            '@' => Robot,
-            _ => panic!("Invalid character in map found!"),
-        }
-    }
 }
 
 struct Object {
@@ -98,10 +95,36 @@ struct Object {
 
 impl Object {
     fn new(c: char, row: usize, col: usize) -> Self {
-        Object {
-            kind: ObjectKind::from(c),
-            pos: Position::new(row, col),
-        }
+        let pos = Position::new(row, col);
+        let kind = match c {
+            '.' => ObjectKind::Empty,
+            '#' => ObjectKind::Wall,
+            'O' => ObjectKind::Box(pos),
+            '@' => ObjectKind::Robot,
+            _ => panic!("Invalid character in map found!"),
+        };
+        Object { kind, pos }
+    }
+
+    fn twice(c: char, row: usize, col: usize) -> [Self; 2] {
+        let (pos1, pos2) = (Position::new(row, col), Position::new(row, col + 1));
+        let (kind1, kind2) = match c {
+            '.' => (ObjectKind::Empty, ObjectKind::Empty),
+            '#' => (ObjectKind::Wall, ObjectKind::Wall),
+            'O' => (ObjectKind::Box(pos2), ObjectKind::Box(pos1)),
+            '@' => (ObjectKind::Robot, ObjectKind::Empty),
+            _ => panic!("Invalid character in map found!"),
+        };
+        [
+            Object {
+                kind: kind1,
+                pos: pos1,
+            },
+            Object {
+                kind: kind2,
+                pos: pos2,
+            },
+        ]
     }
 
     fn gps_coordinate(&self) -> usize {
@@ -143,6 +166,83 @@ impl Robot {
             }
         }
         false
+    }
+}
+
+struct WideMap {
+    grid: Vec<Vec<Object>>,
+}
+
+impl WideMap {
+    fn new(input: &str) -> Self {
+        let mut grid: Vec<Vec<Object>> = Vec::new();
+
+        for (row, line) in input.split("\n\n").nth(0).unwrap().lines().enumerate() {
+            let mut grid_line: Vec<Object> = Vec::new();
+            for (mut col, c) in line.chars().enumerate() {
+                col *= 2;
+                grid_line.extend(Object::twice(c, row, col));
+            }
+            grid.push(grid_line);
+        }
+        Self { grid }
+    }
+
+    fn can_move(&self, pos: Position, direction: Direction) -> bool {
+        use ObjectKind::*;
+        match self.at(pos).kind {
+            Empty => return true,
+            Wall => return false,
+            Box(other_part) => {
+                self.can_move(pos.to(direction), direction)
+                    && self.can_move(other_part.to(direction), direction)
+            }
+            Robot => self.can_move(pos.to(direction), direction),
+        }
+    }
+
+    fn mv_object(&mut self, pos: Position, direction: Direction) -> bool {
+        use ObjectKind::*;
+
+        if !self.can_move(pos, direction) {
+            return false;
+        }
+        match self.at(pos).kind {
+            Empty => return true,
+            Wall => return false,
+            Box(other_part) => {
+                let new_pos = pos.to(direction);
+                self.mv_object(new_pos, direction);
+                self.swap(pos, new_pos);
+                let new_pos = other_part.to(direction);
+                self.mv_object(new_pos, direction);
+                self.swap(other_part, new_pos);
+                true
+            }
+            Robot => {
+                let new_pos = pos.to(direction);
+                if self.mv_object(new_pos, direction) {
+                    self.swap(pos, new_pos);
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn swap(&mut self, pos1: Position, pos2: Position) {
+        let tmp = self.at(pos1).kind;
+        self.at_mut(pos1).kind = self.at(pos2).kind;
+        self.at_mut(pos2).kind = tmp;
+    }
+
+    fn at(&self, pos: Position) -> &Object {
+        &self.grid[pos.row][pos.col]
+    }
+
+    fn at_mut(&mut self, pos: Position) -> &mut Object {
+        &mut self.grid[pos.row][pos.col]
     }
 }
 
@@ -201,5 +301,12 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input);
         assert_eq!(res, 10092);
+    }
+
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input);
+        assert_eq!(res, 9021);
     }
 }
