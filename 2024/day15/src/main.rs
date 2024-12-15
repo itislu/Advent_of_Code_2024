@@ -8,7 +8,7 @@ fn main() {
 }
 
 fn exercise1(input: &str) -> usize {
-    let mut map = Map::new(input);
+    let mut map = Map::new(input, false);
     let mut robot = Robot::new(&map, input);
 
     while !robot.movements.is_empty() {
@@ -19,20 +19,37 @@ fn exercise1(input: &str) -> usize {
         .iter()
         .flatten()
         .filter_map(|object| {
-            if object.kind == ObjectKind::Box {
-                Some(object.gps_coordinate())
-            } else {
-                None
+            if let ObjectKind::Box(None) = object.kind {
+                return Some(object.gps_coordinate())
             }
+            None
         })
         .sum()
 }
 
 fn exercise2(input: &str) -> usize {
-    0
+    let mut map = Map::new(input, true);
+    let mut robot = Robot::new(&map, input);
+
+    while !robot.movements.is_empty() {
+        robot.mv(&mut map);
+    }
+
+    map.grid
+        .iter()
+        .flatten()
+        .filter_map(|object| {
+            if let ObjectKind::Box(Some(part)) = object.kind {
+                if part == BoxPart::Left {
+                    return Some(object.gps_coordinate())
+                }
+            }
+            None
+        })
+        .sum()
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Direction {
     Up,
     Down,
@@ -50,6 +67,16 @@ impl From<char> for Direction {
             '<' => Left,
             _ => panic!("Invalid character in movement found!"),
         }
+    }
+}
+
+impl Direction {
+    fn is_horizontal(&self) -> bool {
+        *self == Self::Right || *self == Self::Left
+    }
+
+    fn is_vertical(&self) -> bool {
+        *self == Self::Up || *self == Self::Down
     }
 }
 
@@ -75,16 +102,26 @@ impl Position {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
 enum BoxPart {
     Left,
     Right,
+}
+
+impl BoxPart {
+    fn other(&self, pos: Position) -> Position {
+        match self {
+            BoxPart::Left => Position::new(pos.row, pos.col + 1),
+            BoxPart::Right => Position::new(pos.row, pos.col - 1),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
 enum ObjectKind {
     Empty,
     Wall,
-    Box(Position),
+    Box(Option<BoxPart>),
     Robot,
 }
 
@@ -99,7 +136,7 @@ impl Object {
         let kind = match c {
             '.' => ObjectKind::Empty,
             '#' => ObjectKind::Wall,
-            'O' => ObjectKind::Box(pos),
+            'O' => ObjectKind::Box(None),
             '@' => ObjectKind::Robot,
             _ => panic!("Invalid character in map found!"),
         };
@@ -111,7 +148,10 @@ impl Object {
         let (kind1, kind2) = match c {
             '.' => (ObjectKind::Empty, ObjectKind::Empty),
             '#' => (ObjectKind::Wall, ObjectKind::Wall),
-            'O' => (ObjectKind::Box(pos2), ObjectKind::Box(pos1)),
+            'O' => (
+                ObjectKind::Box(Some(BoxPart::Left)),
+                ObjectKind::Box(Some(BoxPart::Right)),
+            ),
             '@' => (ObjectKind::Robot, ObjectKind::Empty),
             _ => panic!("Invalid character in map found!"),
         };
@@ -169,23 +209,28 @@ impl Robot {
     }
 }
 
-struct WideMap {
+struct Map {
     grid: Vec<Vec<Object>>,
+    is_wide: bool,
 }
 
-impl WideMap {
-    fn new(input: &str) -> Self {
+impl Map {
+    fn new(input: &str, is_wide: bool) -> Self {
         let mut grid: Vec<Vec<Object>> = Vec::new();
 
         for (row, line) in input.split("\n\n").nth(0).unwrap().lines().enumerate() {
             let mut grid_line: Vec<Object> = Vec::new();
             for (mut col, c) in line.chars().enumerate() {
-                col *= 2;
-                grid_line.extend(Object::twice(c, row, col));
+                if is_wide {
+                    col *= 2;
+                    grid_line.extend(Object::twice(c, row, col));
+                } else {
+                    grid_line.push(Object::new(c, row, col));
+                }
             }
             grid.push(grid_line);
         }
-        Self { grid }
+        Self { grid, is_wide }
     }
 
     fn can_move(&self, pos: Position, direction: Direction) -> bool {
@@ -193,11 +238,12 @@ impl WideMap {
         match self.at(pos).kind {
             Empty => return true,
             Wall => return false,
-            Box(other_part) => {
+            Box(Some(part)) => {
                 self.can_move(pos.to(direction), direction)
-                    && self.can_move(other_part.to(direction), direction)
+                    && (direction.is_horizontal()
+                        || self.can_move(part.other(pos).to(direction), direction))
             }
-            Robot => self.can_move(pos.to(direction), direction),
+            Box(None) | Robot => self.can_move(pos.to(direction), direction),
         }
     }
 
@@ -210,16 +256,18 @@ impl WideMap {
         match self.at(pos).kind {
             Empty => return true,
             Wall => return false,
-            Box(other_part) => {
+            Box(Some(part)) => {
                 let new_pos = pos.to(direction);
                 self.mv_object(new_pos, direction);
                 self.swap(pos, new_pos);
-                let new_pos = other_part.to(direction);
-                self.mv_object(new_pos, direction);
-                self.swap(other_part, new_pos);
+                if direction.is_vertical() {
+                    let new_pos = part.other(pos).to(direction);
+                    self.mv_object(new_pos, direction);
+                    self.swap(part.other(pos), new_pos);
+                }
                 true
             }
-            Robot => {
+            Box(None) | Robot => {
                 let new_pos = pos.to(direction);
                 if self.mv_object(new_pos, direction) {
                     self.swap(pos, new_pos);
@@ -242,52 +290,6 @@ impl WideMap {
     }
 
     fn at_mut(&mut self, pos: Position) -> &mut Object {
-        &mut self.grid[pos.row][pos.col]
-    }
-}
-
-struct Map {
-    grid: Vec<Vec<Object>>,
-}
-
-impl Map {
-    fn new(input: &str) -> Self {
-        let mut grid: Vec<Vec<Object>> = Vec::new();
-
-        for (row, line) in input.split("\n\n").nth(0).unwrap().lines().enumerate() {
-            let mut grid_line: Vec<Object> = Vec::new();
-            for (col, c) in line.chars().enumerate() {
-                grid_line.push(Object::new(c, row, col));
-            }
-            grid.push(grid_line);
-        }
-        Self { grid }
-    }
-
-    fn mv_object(&mut self, pos: Position, direction: Direction) -> bool {
-        use ObjectKind::*;
-
-        match self.at(pos).kind {
-            Wall => return false,
-            Empty => return true,
-            Box | Robot => {}
-        };
-        let new_pos = pos.to(direction);
-        if self.mv_object(new_pos, direction) {
-            self.swap(pos, new_pos);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn swap(&mut self, pos1: Position, pos2: Position) {
-        let tmp = self.at(pos1).kind;
-        self.at(pos1).kind = self.at(pos2).kind;
-        self.at(pos2).kind = tmp;
-    }
-
-    fn at(&mut self, pos: Position) -> &mut Object {
         &mut self.grid[pos.row][pos.col]
     }
 }
