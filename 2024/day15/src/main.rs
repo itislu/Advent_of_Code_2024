@@ -83,9 +83,9 @@ impl From<char> for ObjectKind {
         use ObjectKind::*;
         match c {
             '.' => Empty,
-            '@' => Robot,
             'O' => Box,
             '#' => Wall,
+            '@' => Robot,
             _ => panic!("Invalid character in map found!"),
         }
     }
@@ -148,8 +148,6 @@ impl Robot {
 
 struct Map {
     grid: Vec<Vec<Object>>,
-    height: usize,
-    width: usize,
 }
 
 impl Map {
@@ -163,12 +161,7 @@ impl Map {
             }
             grid.push(grid_line);
         }
-
-        Self {
-            height: grid.len(),
-            width: grid[0].len(),
-            grid,
-        }
+        Self { grid }
     }
 
     fn mv_object(&mut self, pos: Position, direction: Direction) -> bool {
