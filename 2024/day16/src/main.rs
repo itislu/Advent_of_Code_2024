@@ -314,9 +314,16 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_ex1() {
-        let input = input::read_example();
+    fn test1_ex1() {
+        let input = input::read_file("input_example1.txt");
         let res = exercise1(&input);
         assert_eq!(res, 7036);
+    }
+
+    #[test]
+    fn test2_ex1() {
+        let input = input::read_file("input_example2.txt");
+        let res = exercise1(&input);
+        assert_eq!(res, 11048);
     }
 }
