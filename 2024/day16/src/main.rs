@@ -10,7 +10,22 @@ fn exercise1(input: &str) -> i64 {
     let map = Map::new(input);
     let path = dijkstra(&map).expect("No path to the goal found!");
 
+    print_map_with_path(&map, &path);
+
     path[&map.goal].cost
+}
+
+fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
+    for row in &map.grid {
+        for tile in row {
+            if let Some(visit) = path.get(&tile.pos) {
+                print!("{}", visit)
+            } else {
+                print!("{}", tile);
+            }
+        }
+        println!();
+    }
 }
 
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
@@ -97,6 +112,12 @@ impl Position {
     }
 }
 
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.row, self.col)
+    }
+}
+
 #[derive(PartialEq, Eq)]
 enum TileKind {
     Wall,
@@ -114,6 +135,21 @@ impl From<char> for TileKind {
             'E' => TileKind::Goal,
             _ => panic!("Invalid character in map found!"),
         }
+    }
+}
+
+impl std::fmt::Display for TileKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TileKind::Wall => '#',
+                TileKind::Path => '.',
+                TileKind::Start => 'S',
+                TileKind::Goal => 'E',
+            }
+        )
     }
 }
 
@@ -142,6 +178,21 @@ impl Direction {
             Direction::South => Direction::East,
             Direction::East => Direction::North,
         }
+    }
+}
+
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Direction::North => '^',
+                Direction::South => 'v',
+                Direction::East => '>',
+                Direction::West => '<',
+            }
+        )
     }
 }
 
@@ -189,6 +240,12 @@ impl PartialOrd for Visit {
     }
 }
 
+impl std::fmt::Display for Visit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.facing)
+    }
+}
+
 struct Tile {
     pos: Position,
     kind: TileKind,
@@ -200,6 +257,12 @@ impl Tile {
             pos: Position::new(row, col),
             kind: TileKind::from(c),
         }
+    }
+}
+
+impl std::fmt::Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.kind)
     }
 }
 
