@@ -11,7 +11,6 @@ fn exercise1(input: &str) -> i64 {
     let path = dijkstra(&map).expect("No path to the goal found!");
 
     print_map_with_path(&map, &path);
-
     path[&map.goal].cost
 }
 
@@ -30,33 +29,31 @@ fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
 
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
-    let mut visited: HashMap<Position, Visit> = HashMap::new();
+    let mut visited: HashMap<State, Visit> = HashMap::new();
 
-    let start = Visit::new(map.start, map.start, 0);
-    queue.push(start);
-    visited.insert(map.start, start);
+    let start = State::new(map.start, Direction::East);
+    let first_visit = Visit::new(start, start, 0);
+    queue.push(first_visit);
+    visited.insert(start, first_visit);
 
     while let Some(cur) = queue.pop() {
-        if cur.pos == map.goal {
+        if cur.state.pos == map.goal {
             let mut path: HashMap<Position, Visit> = HashMap::new();
-            let mut current = cur;
+            let mut best = cur;
 
-            while current.pos != map.start {
-                path.insert(current.pos, current);
-                current = visited[&current.came_from];
+            while best.state.pos != map.start {
+                path.insert(best.state.pos, best);
+                best = visited[&best.came_from];
             }
-            path.insert(map.start, current);
+            path.insert(best.state.pos, best);
             return Some(path);
         }
 
-        for neighbor_visit in map
-            .neighbors(cur.pos)
-            .filter_map(|neighbor| cur.visit(neighbor))
-        {
-            if !visited.contains_key(&neighbor_visit.pos)
-                || neighbor_visit.cost < visited[&neighbor_visit.pos].cost
+        for neighbor_visit in map.visits(&cur) {
+            if !visited.contains_key(&neighbor_visit.state)
+                || neighbor_visit.cost < visited[&neighbor_visit.state].cost
             {
-                visited.insert(neighbor_visit.pos, neighbor_visit);
+                visited.insert(neighbor_visit.state, neighbor_visit);
                 queue.push(neighbor_visit);
             }
         }
@@ -118,41 +115,6 @@ impl std::fmt::Display for Position {
     }
 }
 
-#[derive(PartialEq, Eq)]
-enum TileKind {
-    Wall,
-    Path,
-    Start,
-    Goal,
-}
-
-impl From<char> for TileKind {
-    fn from(c: char) -> Self {
-        match c {
-            '#' => TileKind::Wall,
-            '.' => TileKind::Path,
-            'S' => TileKind::Start,
-            'E' => TileKind::Goal,
-            _ => panic!("Invalid character in map found!"),
-        }
-    }
-}
-
-impl std::fmt::Display for TileKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                TileKind::Wall => '#',
-                TileKind::Path => '.',
-                TileKind::Start => 'S',
-                TileKind::Goal => 'E',
-            }
-        )
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 enum Direction {
     North,
@@ -197,34 +159,61 @@ impl std::fmt::Display for Direction {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct Visit {
+struct State {
     pos: Position,
     facing: Direction,
-    came_from: Position,
+}
+
+impl State {
+    fn new(pos: Position, facing: Direction) -> Self {
+        Self { pos, facing }
+    }
+
+    fn ahead(&self) -> Self {
+        Self {
+            pos: self.pos.to(self.facing),
+            facing: self.facing,
+        }
+    }
+
+    fn clockwise(&self) -> Self {
+        Self {
+            pos: self.pos,
+            facing: self.facing.clockwise(),
+        }
+    }
+
+    fn counter_clockwise(&self) -> Self {
+        Self {
+            pos: self.pos,
+            facing: self.facing.counter_clockwise(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct Visit {
+    state: State,
+    came_from: State,
     cost: i64,
 }
 
 impl Visit {
-    fn new(pos: Position, came_from: Position, cost: i64) -> Self {
+    fn new(state: State, came_from: State, cost: i64) -> Self {
         Self {
-            pos,
-            facing: pos.dir(came_from),
+            state,
             came_from,
             cost,
         }
     }
 
-    fn visit(&self, target: &Tile) -> Option<Visit> {
-        match (
-            self.pos.to(self.facing),
-            self.pos.to(self.facing.clockwise()),
-            self.pos.to(self.facing.counter_clockwise()),
-        ) {
-            (pos, _, _) if pos == target.pos => Some(Visit::new(pos, self.pos, self.cost + 1)),
-            (_, pos, _) if pos == target.pos => Some(Visit::new(pos, self.pos, self.cost + 1001)),
-            (_, _, pos) if pos == target.pos => Some(Visit::new(pos, self.pos, self.cost + 1001)),
-            _ => None,
-        }
+    fn visits(&self) -> impl Iterator<Item = Visit> {
+        [
+            Visit::new(self.state.ahead(), self.state, self.cost + 1),
+            Visit::new(self.state.clockwise(), self.state, self.cost + 1000),
+            Visit::new(self.state.counter_clockwise(), self.state, self.cost + 1000),
+        ]
+        .into_iter()
     }
 }
 
@@ -242,7 +231,42 @@ impl PartialOrd for Visit {
 
 impl std::fmt::Display for Visit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.facing)
+        write!(f, "{}", self.state.facing)
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum TileKind {
+    Wall,
+    Path,
+    Start,
+    Goal,
+}
+
+impl From<char> for TileKind {
+    fn from(c: char) -> Self {
+        match c {
+            '#' => TileKind::Wall,
+            '.' => TileKind::Path,
+            'S' => TileKind::Start,
+            'E' => TileKind::Goal,
+            _ => panic!("Invalid character in map found!"),
+        }
+    }
+}
+
+impl std::fmt::Display for TileKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TileKind::Wall => '#',
+                TileKind::Path => '.',
+                TileKind::Start => 'S',
+                TileKind::Goal => 'E',
+            }
+        )
     }
 }
 
@@ -298,10 +322,10 @@ impl Map {
         }
     }
 
-    fn neighbors(&self, pos: Position) -> impl Iterator<Item = &Tile> {
-        pos.neighbors()
-            .map(|neighbor_pos| self.at(neighbor_pos))
-            .filter(|neighbor| neighbor.kind != TileKind::Wall)
+    fn visits<'a>(&'a self, cur_visit: &'a Visit) -> impl Iterator<Item = Visit> + 'a {
+        cur_visit
+            .visits()
+            .filter(|visit| self.at(visit.state.pos).kind != TileKind::Wall)
     }
 
     fn at(&self, pos: Position) -> &Tile {
