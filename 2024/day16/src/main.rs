@@ -8,46 +8,45 @@ fn main() {
 
 fn exercise1(input: &str) -> i64 {
     let map = Map::new(input);
-    let path = dijkstra(&map);
-    path.get(&map.goal)
-        .expect("No path to the goal found!")
-        .cost
+    let path = dijkstra(&map).expect("No path to the goal found!");
+
+    path[&map.goal].cost
 }
 
-fn dijkstra(map: &Map) -> HashMap<Position, Visit> {
+fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
-    let mut path: HashMap<Position, Visit> = HashMap::new();
-    let mut cost_table: HashMap<Position, i64> = HashMap::new();
+    let mut visited: HashMap<Position, Visit> = HashMap::new();
 
-    queue.push(Visit::new(map.start, map.start, 0));
-    path.insert(map.start, Visit::new(map.start, map.start, 0));
-    cost_table.insert(map.start, 0);
+    let start = Visit::new(map.start, map.start, 0);
+    queue.push(start);
+    visited.insert(map.start, start);
 
     while let Some(cur) = queue.pop() {
         if cur.pos == map.goal {
-            break;
+            let mut path: HashMap<Position, Visit> = HashMap::new();
+            let mut current = cur;
+
+            while current.pos != map.start {
+                path.insert(current.pos, current);
+                current = visited[&current.came_from];
+            }
+            path.insert(map.start, current);
+            return Some(path);
         }
 
         for neighbor_visit in map
             .neighbors(cur.pos)
             .filter_map(|neighbor| cur.visit(neighbor))
         {
-            if !cost_table.contains_key(&neighbor_visit.pos)
-                || neighbor_visit.cost < cost_table[&neighbor_visit.pos]
+            if !visited.contains_key(&neighbor_visit.pos)
+                || neighbor_visit.cost < visited[&neighbor_visit.pos].cost
             {
-                cost_table.insert(neighbor_visit.pos, neighbor_visit.cost);
-                path.insert(neighbor_visit.pos, neighbor_visit);
+                visited.insert(neighbor_visit.pos, neighbor_visit);
                 queue.push(neighbor_visit);
             }
         }
     }
-    path
-}
-
-enum Movement {
-    Straight,
-    Right,
-    Left,
+    None
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -237,7 +236,6 @@ impl Map {
     }
 
     fn neighbors(&self, pos: Position) -> impl Iterator<Item = &Tile> {
-        {}
         pos.neighbors()
             .map(|neighbor_pos| self.at(neighbor_pos))
             .filter(|neighbor| neighbor.kind != TileKind::Wall)
