@@ -4,6 +4,7 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input));
+    println!("exercise 2: {}", exercise2(&input));
 }
 
 fn exercise1(input: &str) -> i64 {
@@ -12,6 +13,14 @@ fn exercise1(input: &str) -> i64 {
 
     print_map_with_path(&map, &path);
     path[&map.goal].cost
+}
+
+fn exercise2(input: &str) -> usize {
+    let map = Map::new(input);
+    let best_paths: HashMap<Position, Visit> = dijkstra_all(&map);
+
+    print_map_with_path(&map, &best_paths);
+    best_paths.iter().count()
 }
 
 fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
@@ -25,6 +34,16 @@ fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
         }
         println!();
     }
+}
+
+fn print_map_with_path_convert(map: &Map, path: &HashMap<State, Visit>) {
+    print_map_with_path(
+        map,
+        &path
+            .iter()
+            .map(|(state, visit)| (state.pos, *visit))
+            .collect(),
+    );
 }
 
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
@@ -59,6 +78,43 @@ fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
         }
     }
     None
+}
+
+fn dijkstra_all(map: &Map) -> HashMap<Position, Visit> {
+    let mut best_paths: HashMap<Position, Visit> = HashMap::new();
+    let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
+    let mut visited: HashMap<State, Visit> = HashMap::new();
+
+    let start = State::new(map.start, Direction::East);
+    let first_visit = Visit::new(start, start, 0);
+    queue.push(first_visit);
+    visited.insert(start, first_visit);
+
+    while let Some(cur) = queue.pop() {
+        if cur.state.pos == map.goal {
+            if !best_paths.contains_key(&map.goal) || cur.cost == best_paths[&map.goal].cost {
+                let mut best = cur;
+
+                while best.state.pos != map.start {
+                    best_paths.insert(best.state.pos, best);
+                    best = visited[&best.came_from];
+                }
+                best_paths.insert(best.state.pos, best);
+            }
+            print_map_with_path_convert(map, &visited);
+            continue;
+        }
+
+        for neighbor_visit in map.visits(&cur) {
+            if !visited.contains_key(&neighbor_visit.state)
+                || neighbor_visit.cost <= visited[&neighbor_visit.state].cost
+            {
+                visited.insert(neighbor_visit.state, neighbor_visit);
+                queue.push(neighbor_visit);
+            }
+        }
+    }
+    best_paths
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -349,5 +405,19 @@ mod test {
         let input = input::read_file("input_example2.txt");
         let res = exercise1(&input);
         assert_eq!(res, 11048);
+    }
+
+    #[test]
+    fn test1_ex2() {
+        let input = input::read_file("input_example1.txt");
+        let res = exercise2(&input);
+        assert_eq!(res, 45);
+    }
+
+    #[test]
+    fn test2_ex2() {
+        let input = input::read_file("input_example2.txt");
+        let res = exercise2(&input);
+        assert_eq!(res, 64);
     }
 }
