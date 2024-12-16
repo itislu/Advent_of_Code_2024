@@ -11,7 +11,7 @@ pub mod input {
         read_file("input_example.txt")
     }
 
-    fn read_file(filename: &str) -> String {
+    pub fn read_file(filename: &str) -> String {
         let dir = match env::var("CARGO_MANIFEST_DIR") {
             Ok(dir) => path::PathBuf::from(dir),
             Err(_) => env::current_dir().expect("Failed to get current directory"),
