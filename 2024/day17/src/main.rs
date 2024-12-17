@@ -8,7 +8,7 @@ fn main() {
 fn exercise1(input: &str) -> String {
     let mut computer = Computer::new(input);
     computer.run();
-    computer.out
+    computer.output()
 }
 
 struct Computer {
@@ -17,7 +17,7 @@ struct Computer {
     reg_c: usize,
     instr: Vec<usize>,
     ptr: usize,
-    out: String,
+    out: Vec<char>,
 }
 
 impl Computer {
@@ -33,14 +33,13 @@ impl Computer {
             .split(',')
             .map(|n| n.parse().unwrap())
             .collect();
-
         Self {
             reg_a: registers[0] as usize,
             reg_b: registers[1] as usize,
             reg_c: registers[2] as usize,
-            instr: instr,
+            instr,
             ptr: 0,
-            out: String::new(),
+            out: Vec::new(),
         }
     }
 
@@ -67,7 +66,7 @@ impl Computer {
                 5 => self.out(operand),
                 6 => self.bdv(operand),
                 7 => self.cdv(operand),
-                _ => panic!("Invalid instruction"),
+                _ => panic!("Invalid instruction!"),
             };
             if self.ptr == prev_ptr {
                 self.ptr += 2;
@@ -78,7 +77,7 @@ impl Computer {
     fn adv(&mut self, operand: usize) {
         self.reg_a >>= self.combo(operand);
     }
-    
+
     fn bxl(&mut self, operand: usize) {
         self.reg_b ^= operand;
     }
@@ -93,15 +92,13 @@ impl Computer {
         }
     }
 
-    fn bxc(&mut self, operand: usize) {
+    fn bxc(&mut self, _operand: usize) {
         self.reg_b ^= self.reg_c;
     }
 
     fn out(&mut self, operand: usize) {
-        if !self.out.is_empty() {
-            self.out += ",";
-        }
-        self.out += &(self.combo(operand) & 7).to_string();
+        self.out
+            .push(((self.combo(operand) & 7) as u8 + b'0') as char);
     }
 
     fn bdv(&mut self, operand: usize) {
@@ -110,6 +107,10 @@ impl Computer {
 
     fn cdv(&mut self, operand: usize) {
         self.reg_c = self.reg_a >> self.combo(operand);
+    }
+
+    fn output(&self) -> String {
+        self.out.iter().join(",")
     }
 }
 
