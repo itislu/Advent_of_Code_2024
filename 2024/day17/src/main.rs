@@ -76,7 +76,7 @@ impl Computer {
     }
 
     fn adv(&mut self, operand: usize) {
-        self.reg_a /= 2_usize.pow(self.combo(operand) as u32);
+        self.reg_a >>= self.combo(operand);
     }
     
     fn bxl(&mut self, operand: usize) {
@@ -84,7 +84,7 @@ impl Computer {
     }
 
     fn bst(&mut self, operand: usize) {
-        self.reg_b = self.combo(operand) % 8;
+        self.reg_b = self.combo(operand) & 7;
     }
 
     fn jnz(&mut self, operand: usize) {
@@ -101,15 +101,15 @@ impl Computer {
         if !self.out.is_empty() {
             self.out += ",";
         }
-        self.out += &(self.combo(operand) % 8).to_string();
+        self.out += &(self.combo(operand) & 7).to_string();
     }
 
     fn bdv(&mut self, operand: usize) {
-        self.reg_b = self.reg_a / 2_usize.pow(self.combo(operand) as u32);
+        self.reg_b = self.reg_a >> self.combo(operand);
     }
 
     fn cdv(&mut self, operand: usize) {
-        self.reg_c = self.reg_a / 2_usize.pow(self.combo(operand) as u32);
+        self.reg_c = self.reg_a >> self.combo(operand);
     }
 }
 
