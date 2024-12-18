@@ -8,6 +8,11 @@ use utils::input;
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input, 71, 71, 1024));
+    println!(
+        "exercise 2: {}",
+        exercise2(&input, 71, 71, 1024)
+            .expect("No obstacle prevents the exit from being reachable.")
+    );
 }
 
 fn exercise1(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> i64 {
@@ -23,6 +28,25 @@ fn exercise1(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> i
     print_map_with_path(&map, &path);
 
     path[&map.goal].cost
+}
+
+fn exercise2(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> Option<Position> {
+    let mut obstacles: VecDeque<Position> = parse_obstacles(input);
+    let mut map = Map::new(rows, cols);
+
+    for obstacle in obstacles.drain(0..min(obstacle_amount, obstacles.len())) {
+        map.put(obstacle, TileKind::Obstacle);
+    }
+
+    while let Some(obstacle) = obstacles.pop_front() {
+        map.put(obstacle, TileKind::Obstacle);
+        if let Some(path) = dijkstra(&map) {
+            print_map_with_path(&map, &path);
+        } else {
+            return Some(obstacle);
+        }
+    }
+    None
 }
 
 fn parse_obstacles(input: &str) -> VecDeque<Position> {
@@ -84,7 +108,7 @@ fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     None
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct Position {
     row: usize,
     col: usize,
@@ -334,5 +358,13 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input, 7, 7, 12);
         assert_eq!(res, 22);
+    }
+
+    #[test]
+    fn test_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 7, 7, 12)
+            .expect("No obstacle prevents the exit from being reachable.");
+        assert_eq!(res, Position::new(1, 6));
     }
 }
