@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 use strum::IntoEnumIterator;
-use utils::input;
+use utils::{colors, input};
 
 fn main() {
     let input = input::read_input();
@@ -202,10 +202,10 @@ impl std::fmt::Display for Direction {
             f,
             "{}",
             match self {
-                Direction::Up => '^',
-                Direction::Down => 'v',
-                Direction::Right => '>',
-                Direction::Left => '<',
+                Direction::Up => format!("{}^{}", colors::BOLD_BRIGHT_YELLOW, colors::RESET),
+                Direction::Down => format!("{}v{}", colors::BOLD_BRIGHT_YELLOW, colors::RESET),
+                Direction::Right => format!("{}>{}", colors::BOLD_BRIGHT_YELLOW, colors::RESET),
+                Direction::Left => format!("{}<{}", colors::BOLD_BRIGHT_YELLOW, colors::RESET),
             }
         )
     }
