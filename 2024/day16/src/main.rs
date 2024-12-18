@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use utils::input;
 
 fn main() {
@@ -81,9 +81,10 @@ fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
 }
 
 fn dijkstra_all(map: &Map) -> HashMap<Position, Visit> {
-    let mut best_paths: HashMap<Position, Visit> = HashMap::new();
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
     let mut visited: HashMap<State, Visit> = HashMap::new();
+    let mut best_paths: HashMap<Position, Visit> = HashMap::new();
+    let mut todo: VecDeque<(BinaryHeap<Visit>, HashMap<State, Visit>)> = VecDeque::new();
 
     let start = State::new(map.start, Direction::East);
     let first_visit = Visit::new(start, start, 0);
@@ -94,30 +95,48 @@ fn dijkstra_all(map: &Map) -> HashMap<Position, Visit> {
         if cur.state.pos == map.goal {
             if !best_paths.contains_key(&map.goal) || cur.cost == best_paths[&map.goal].cost {
                 let mut best = cur;
+                let mut new_path: HashMap<Position, Visit> = HashMap::new();
 
                 while best.state.pos != map.start {
-                    best_paths.insert(best.state.pos, best);
+                    new_path.insert(best.state.pos, best);
                     best = visited[&best.came_from];
                 }
-                best_paths.insert(best.state.pos, best);
-            }
-            print_map_with_path_convert(map, &visited);
+                new_path.insert(best.state.pos, best);
+                // println!("new path found:");
+                // print_map_with_path(map, &new_path);
+                // println!("visited tiles so far:");
+                // print_map_with_path_convert(map, &visited);
+                // println!();
+                best_paths.extend(new_path);
+                (queue, visited) = todo.pop_front().unwrap_or_default();
+                println!("took {:?} from todo list", queue.peek());
+                println!("best tiles: {}", best_paths.iter().count());
             continue;
         }
 
         for neighbor_visit in map.visits(&cur) {
             if !visited.contains_key(&neighbor_visit.state)
-                || neighbor_visit.cost <= visited[&neighbor_visit.state].cost
+                || neighbor_visit.cost < visited[&neighbor_visit.state].cost
             {
                 visited.insert(neighbor_visit.state, neighbor_visit);
                 queue.push(neighbor_visit);
+            } else if neighbor_visit.cost == visited[&neighbor_visit.state].cost {
+                // println!(
+                //     "\n{:?}\nis same cost as already saved visit\n{:?}.",
+                //     neighbor_visit, visited[&neighbor_visit.state]
+                // );
+                let mut alt_queue = queue.clone();
+                let mut alt_visited = visited.clone();
+                alt_visited.insert(neighbor_visit.state, neighbor_visit);
+                alt_queue.push(neighbor_visit);
+                todo.push_back((alt_queue, alt_visited));
             }
         }
     }
     best_paths
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct Position {
     row: usize,
     col: usize,
@@ -171,7 +190,7 @@ impl std::fmt::Display for Position {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 enum Direction {
     North,
     South,
@@ -214,7 +233,7 @@ impl std::fmt::Display for Direction {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct State {
     pos: Position,
     facing: Direction,
@@ -247,7 +266,7 @@ impl State {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Visit {
     state: State,
     came_from: State,
