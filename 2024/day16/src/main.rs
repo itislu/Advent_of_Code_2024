@@ -225,23 +225,23 @@ impl State {
         Self { pos, facing }
     }
 
-    fn ahead(&self) -> Self {
+    fn front(&self) -> Self {
         Self {
             pos: self.pos.to(self.facing),
             facing: self.facing,
         }
     }
 
-    fn clockwise(&self) -> Self {
+    fn right(&self) -> Self {
         Self {
-            pos: self.pos,
+            pos: self.pos.to(self.facing.clockwise()),
             facing: self.facing.clockwise(),
         }
     }
 
-    fn counter_clockwise(&self) -> Self {
+    fn left(&self) -> Self {
         Self {
-            pos: self.pos,
+            pos: self.pos.to(self.facing.counter_clockwise()),
             facing: self.facing.counter_clockwise(),
         }
     }
@@ -265,9 +265,9 @@ impl Visit {
 
     fn visits(&self) -> impl Iterator<Item = Visit> {
         [
-            Visit::new(self.state.ahead(), self.state, self.cost + 1),
-            Visit::new(self.state.clockwise(), self.state, self.cost + 1000),
-            Visit::new(self.state.counter_clockwise(), self.state, self.cost + 1000),
+            Visit::new(self.state.front(), self.state, self.cost + 1),
+            Visit::new(self.state.right(), self.state, self.cost + 1001),
+            Visit::new(self.state.left(), self.state, self.cost + 1001),
         ]
         .into_iter()
     }
