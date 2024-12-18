@@ -1,6 +1,8 @@
 use std::{
     cmp::min,
     collections::{BinaryHeap, HashMap, VecDeque},
+    thread,
+    time::Duration,
 };
 use strum::IntoEnumIterator;
 use utils::input;
@@ -24,15 +26,18 @@ fn exercise1(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> i
     }
 
     let path = dijkstra(&map).expect("No path to the goal found!");
-
-    print_map_with_path(&map, &path);
-
+    #[cfg(debug_assertions)]
+    {
+        print_map_with_path(&map, &path, true);
+    }
     path[&map.goal].cost
 }
 
 fn exercise2(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> Option<Position> {
+    let mut res: Option<Position> = None;
     let mut obstacles: VecDeque<Position> = parse_obstacles(input);
     let mut map = Map::new(rows, cols);
+    let mut first_time = true;
 
     for obstacle in obstacles.drain(0..min(obstacle_amount, obstacles.len())) {
         map.put(obstacle, TileKind::Obstacle);
@@ -41,35 +46,18 @@ fn exercise2(input: &str, rows: usize, cols: usize, obstacle_amount: usize) -> O
     while let Some(obstacle) = obstacles.pop_front() {
         map.put(obstacle, TileKind::Obstacle);
         if let Some(path) = dijkstra(&map) {
-            print_map_with_path(&map, &path);
-        } else {
-            return Some(obstacle);
-        }
-    }
-    None
-}
-
-fn parse_obstacles(input: &str) -> VecDeque<Position> {
-    input
-        .lines()
-        .filter_map(|line| {
-            line.split_once(',')
-                .map(|(col, row)| Position::new(row.parse().unwrap(), col.parse().unwrap()))
-        })
-        .collect()
-}
-
-fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
-    for row in &map.grid {
-        for tile in row {
-            if let Some(visit) = path.get(&tile.pos) {
-                print!("{}", visit)
-            } else {
-                print!("{}", tile);
+            #[cfg(debug_assertions)]
+            {
+                print_map_with_path(&map, &path, first_time);
+                first_time = false;
+                thread::sleep(Duration::from_millis(10))
             }
+        } else {
+            res = Some(obstacle);
+            break;
         }
-        println!();
     }
+    res
 }
 
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
@@ -106,6 +94,25 @@ fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
         }
     }
     None
+}
+
+fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>, first_time: bool) {
+    let mut buffer = String::with_capacity(map.grid.len() * map.grid[0].len() * 2);
+
+    for row in &map.grid {
+        for tile in row {
+            if let Some(visit) = path.get(&tile.pos) {
+                buffer += &visit.to_string();
+            } else {
+                buffer += &tile.to_string();
+            }
+        }
+        buffer += "\n";
+    }
+    if !first_time {
+        print!("\x1B[{}A", map.height);
+    }
+    print!("{}", buffer);
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -347,6 +354,16 @@ impl std::fmt::Display for Map {
         }
         Ok(())
     }
+}
+
+fn parse_obstacles(input: &str) -> VecDeque<Position> {
+    input
+        .lines()
+        .filter_map(|line| {
+            line.split_once(',')
+                .map(|(col, row)| Position::new(row.parse().unwrap(), col.parse().unwrap()))
+        })
+        .collect()
 }
 
 #[cfg(test)]
