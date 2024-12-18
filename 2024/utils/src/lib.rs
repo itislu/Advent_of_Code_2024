@@ -39,3 +39,28 @@ mod tests {
         println!("{}", result);
     }
 }
+
+pub mod colors {
+    pub const RESET: &str = "\x1B[0m";
+    pub const BOLD: &str = "\x1B[1m";
+
+    pub const RED: &str = "\x1B[31m";
+    pub const GREEN: &str = "\x1B[32m";
+    pub const YELLOW: &str = "\x1B[33m";
+    pub const BLUE: &str = "\x1B[34m";
+
+    pub const BRIGHT_RED: &str = "\x1B[91m";
+    pub const BRIGHT_GREEN: &str = "\x1B[92m";
+    pub const BRIGHT_YELLOW: &str = "\x1B[93m";
+    pub const BRIGHT_BLUE: &str = "\x1B[94m";
+
+    pub const BOLD_RED: &str = "\x1B[1;31m";
+    pub const BOLD_GREEN: &str = "\x1B[1;32m";
+    pub const BOLD_YELLOW: &str = "\x1B[1;33m";
+    pub const BOLD_BLUE: &str = "\x1B[1;34m";
+
+    pub const BOLD_BRIGHT_RED: &str = "\x1B[1;91m";
+    pub const BOLD_BRIGHT_GREEN: &str = "\x1B[1;92m";
+    pub const BOLD_BRIGHT_YELLOW: &str = "\x1B[1;93m";
+    pub const BOLD_BRIGHT_BLUE: &str = "\x1B[1;94m";
+}
