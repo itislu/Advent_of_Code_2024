@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap, VecDeque};
+use std::collections::{BinaryHeap, HashMap};
 use utils::input;
 
 fn main() {
@@ -17,7 +17,7 @@ fn exercise1(input: &str) -> i64 {
 
 fn exercise2(input: &str) -> usize {
     let map = Map::new(input);
-    let best_paths: HashMap<Position, Visit> = dijkstra_all(&map);
+    let best_paths = dijkstra_all(&map).expect("No path to the goal found!");
 
     print_map_with_path(&map, &best_paths);
     best_paths.iter().count()
@@ -36,43 +36,25 @@ fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
     }
 }
 
-fn print_map_with_path_convert(map: &Map, path: &HashMap<State, Visit>) {
-    print_map_with_path(
-        map,
-        &path
-            .iter()
-            .map(|(state, visit)| (state.pos, *visit))
-            .collect(),
-    );
-}
-
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
     let mut visited: HashMap<State, Visit> = HashMap::new();
 
     let start = State::new(map.start, Direction::East);
     let first_visit = Visit::new(start, start, 0);
-    queue.push(first_visit);
+    queue.push(first_visit.clone());
     visited.insert(start, first_visit);
 
     while let Some(cur) = queue.pop() {
         if cur.state.pos == map.goal {
-            let mut path: HashMap<Position, Visit> = HashMap::new();
-            let mut best = cur;
-
-            while best.state.pos != map.start {
-                path.insert(best.state.pos, best);
-                best = visited[&best.came_from];
-            }
-            path.insert(best.state.pos, best);
-            return Some(path);
+            return Some(collect_all_paths(&cur, &visited));
         }
 
         for neighbor_visit in map.visits(&cur) {
             if !visited.contains_key(&neighbor_visit.state)
                 || neighbor_visit.cost < visited[&neighbor_visit.state].cost
             {
-                visited.insert(neighbor_visit.state, neighbor_visit);
+                visited.insert(neighbor_visit.state, neighbor_visit.clone());
                 queue.push(neighbor_visit);
             }
         }
@@ -80,56 +62,52 @@ fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     None
 }
 
-fn dijkstra_all(map: &Map) -> HashMap<Position, Visit> {
+fn dijkstra_all(map: &Map) -> Option<HashMap<Position, Visit>> {
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
     let mut visited: HashMap<State, Visit> = HashMap::new();
-    let mut best_paths: HashMap<Position, Visit> = HashMap::new();
-    let mut todo: VecDeque<(BinaryHeap<Visit>, HashMap<State, Visit>)> = VecDeque::new();
 
     let start = State::new(map.start, Direction::East);
     let first_visit = Visit::new(start, start, 0);
-    queue.push(first_visit);
+    queue.push(first_visit.clone());
     visited.insert(start, first_visit);
 
     while let Some(cur) = queue.pop() {
         if cur.state.pos == map.goal {
-            if !best_paths.contains_key(&map.goal) || cur.cost == best_paths[&map.goal].cost {
-                let mut best = cur;
-                let mut new_path: HashMap<Position, Visit> = HashMap::new();
-
-                while best.state.pos != map.start {
-                    new_path.insert(best.state.pos, best);
-                    best = visited[&best.came_from];
-                }
-                new_path.insert(best.state.pos, best);
-                // println!("new path found:");
-                // print_map_with_path(map, &new_path);
-                // println!("visited tiles so far:");
-                // print_map_with_path_convert(map, &visited);
-                // println!();
-                best_paths.extend(new_path);
-                (queue, visited) = todo.pop_front().unwrap_or_default();
-                println!("took {:?} from todo list", queue.peek());
-                println!("best tiles: {}", best_paths.iter().count());
-            continue;
+            return Some(collect_all_paths(&cur, &visited));
         }
 
         for neighbor_visit in map.visits(&cur) {
-            if !visited.contains_key(&neighbor_visit.state)
-                || neighbor_visit.cost < visited[&neighbor_visit.state].cost
-            {
-                visited.insert(neighbor_visit.state, neighbor_visit);
-                queue.push(neighbor_visit);
-            } else if neighbor_visit.cost == visited[&neighbor_visit.state].cost {
-                // println!(
-                //     "\n{:?}\nis same cost as already saved visit\n{:?}.",
-                //     neighbor_visit, visited[&neighbor_visit.state]
-                // );
-                let mut alt_queue = queue.clone();
-                let mut alt_visited = visited.clone();
-                alt_visited.insert(neighbor_visit.state, neighbor_visit);
-                alt_queue.push(neighbor_visit);
-                todo.push_back((alt_queue, alt_visited));
+            match visited.get_mut(&neighbor_visit.state) {
+                None => {
+                    visited.insert(neighbor_visit.state, neighbor_visit.clone());
+                    queue.push(neighbor_visit);
+                }
+                Some(existing) => {
+                    if neighbor_visit.cost < existing.cost {
+                        visited.insert(neighbor_visit.state, neighbor_visit.clone());
+                        queue.push(neighbor_visit);
+                    } else if neighbor_visit.cost == existing.cost {
+                        existing.came_from.extend(neighbor_visit.came_from);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn collect_all_paths(visit: &Visit, visited: &HashMap<State, Visit>) -> HashMap<Position, Visit> {
+    let mut best_paths: HashMap<Position, Visit> = HashMap::new();
+    let mut to_process = vec![visit.clone()];
+
+    while let Some(cur) = to_process.pop() {
+        best_paths.insert(cur.state.pos, cur.clone());
+
+        for prev_state in &cur.came_from {
+            if let Some(prev_visit) = visited.get(prev_state) {
+                if !best_paths.contains_key(&prev_visit.state.pos) {
+                    to_process.push(prev_visit.clone());
+                }
             }
         }
     }
@@ -266,10 +244,10 @@ impl State {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct Visit {
     state: State,
-    came_from: State,
+    came_from: Vec<State>,
     cost: i64,
 }
 
@@ -277,7 +255,7 @@ impl Visit {
     fn new(state: State, came_from: State, cost: i64) -> Self {
         Self {
             state,
-            came_from,
+            came_from: vec![came_from],
             cost,
         }
     }
