@@ -19,7 +19,6 @@ fn exercise1(input: &str) -> usize {
             .filter(|&a| design.contains(a))
             .copied()
             .collect();
-        // println!("selected: {}/{}", selected_available.len(), available.len(),);
         if is_possible(design, &selected_available, &mut cache) {
             possible += 1;
         }
@@ -30,7 +29,7 @@ fn exercise1(input: &str) -> usize {
 fn exercise2(input: &str) -> usize {
     let available: Vec<&str> = parse_available(input);
     let wanted: Vec<&str> = parse_wanted(input);
-    let mut cache: HashMap<&str, Option<usize>> = HashMap::new();
+    let mut cache: HashMap<&str, usize> = HashMap::new();
     let mut possible: usize = 0;
 
     for design in wanted {
@@ -39,9 +38,7 @@ fn exercise2(input: &str) -> usize {
             .filter(|&a| design.contains(a))
             .copied()
             .collect();
-        if let Some(count) = count_possible(design, &selected_available, &mut cache) {
-            possible += count;
-        }
+        possible += count_possible(design, &selected_available, &mut cache);
     }
     possible
 }
@@ -72,29 +69,25 @@ fn is_possible<'a>(
 fn count_possible<'a>(
     wanted: &'a str,
     available: &Vec<&str>,
-    cache: &mut HashMap<&'a str, Option<usize>>,
-) -> Option<usize> {
-    let mut res: Option<usize> = None;
-    let mut possible: usize = 0;
-
+    cache: &mut HashMap<&'a str, usize>,
+) -> usize {
     if let Some(&cached_res) = cache.get(wanted) {
         return cached_res;
     }
     if wanted.is_empty() {
-        possible += 1;
-        return Some(possible);
+        return 1;
     }
+    let mut possible: usize = 0;
+
     for a in available {
         if let Some(substr) = wanted.strip_prefix(a) {
-            if let Some(count) = count_possible(substr, available, cache) {
-                cache.insert(wanted, Some(count));
-                possible += count;
-                res = Some(possible);
-            }
+            let count = count_possible(substr, available, cache);
+            cache.insert(wanted, count);
+            possible += count;
         }
     }
-    cache.insert(wanted, res);
-    res
+    cache.insert(wanted, possible);
+    possible
 }
 
 fn parse_available(input: &str) -> Vec<&str> {
