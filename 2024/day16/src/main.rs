@@ -114,60 +114,6 @@ fn collect_all_paths(visit: &Visit, visited: &HashMap<State, Visit>) -> HashMap<
     best_paths
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-struct Position {
-    row: usize,
-    col: usize,
-}
-
-impl Position {
-    fn new(row: usize, col: usize) -> Self {
-        Self { row, col }
-    }
-
-    fn neighbors(&self) -> impl Iterator<Item = Self> {
-        [
-            Self::new(self.row - 1, self.col),
-            Self::new(self.row + 1, self.col),
-            Self::new(self.row, self.col + 1),
-            Self::new(self.row, self.col - 1),
-        ]
-        .into_iter()
-    }
-
-    fn to(&self, direction: Direction) -> Self {
-        match direction {
-            Direction::North => Self::new(self.row - 1, self.col),
-            Direction::South => Self::new(self.row + 1, self.col),
-            Direction::East => Self::new(self.row, self.col + 1),
-            Direction::West => Self::new(self.row, self.col - 1),
-        }
-    }
-
-    fn dir(&self, from: Position) -> Direction {
-        let row_diff = self.row as i64 - from.row as i64;
-        let col_diff = self.col as i64 - from.col as i64;
-
-        if col_diff.abs() >= row_diff.abs() {
-            match col_diff >= 0 {
-                true => Direction::East,
-                false => Direction::West,
-            }
-        } else {
-            match row_diff <= 0 {
-                true => Direction::North,
-                false => Direction::South,
-            }
-        }
-    }
-}
-
-impl std::fmt::Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {})", self.row, self.col)
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 enum Direction {
     North,
@@ -208,6 +154,33 @@ impl std::fmt::Display for Direction {
                 Direction::West => '<',
             }
         )
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+struct Position {
+    row: usize,
+    col: usize,
+}
+
+impl Position {
+    fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
+    }
+
+    fn to(&self, direction: Direction) -> Self {
+        match direction {
+            Direction::North => Self::new(self.row - 1, self.col),
+            Direction::South => Self::new(self.row + 1, self.col),
+            Direction::East => Self::new(self.row, self.col + 1),
+            Direction::West => Self::new(self.row, self.col - 1),
+        }
+    }
+}
+
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.row, self.col)
     }
 }
 
