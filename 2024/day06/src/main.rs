@@ -7,7 +7,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> usize {
+fn exercise1(input: &str) -> usize {
     let mut guard = Guard::new(input);
 
     println!("BEFORE:\n{}\n", guard.map);
@@ -21,7 +21,7 @@ fn exercise1(input: &String) -> usize {
     guard.map.count_visited()
 }
 
-fn exercise2(input: &String) -> usize {
+fn exercise2(input: &str) -> usize {
     let mut res: usize = 0;
     let mut main_guard = Guard::new(input);
 
@@ -129,7 +129,7 @@ struct Map {
 }
 
 impl Map {
-    fn new(input: &String) -> Self {
+    fn new(input: &str) -> Self {
         let grid: Vec<Vec<Cell>> = input
             .lines()
             .enumerate()
@@ -213,10 +213,7 @@ impl Not for MoveResult {
     type Output = bool;
 
     fn not(self) -> Self::Output {
-        match self {
-            MoveResult::Success => false,
-            _ => true,
-        }
+        !matches!(self, MoveResult::Success)
     }
 }
 
@@ -229,7 +226,7 @@ struct Guard {
 }
 
 impl Guard {
-    fn new(input: &String) -> Self {
+    fn new(input: &str) -> Self {
         let mut map = Map::new(input);
         let mut row: i64 = -1;
         let mut col: i64 = -1;

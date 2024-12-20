@@ -89,7 +89,7 @@ fn count_possible<'a>(
 }
 
 fn parse_available(input: &str) -> Vec<&str> {
-    input.lines().nth(0).unwrap().split(", ").collect()
+    input.lines().next().unwrap().split(", ").collect()
 }
 
 fn parse_wanted(input: &str) -> Vec<&str> {

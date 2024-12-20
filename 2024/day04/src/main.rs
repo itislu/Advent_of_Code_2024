@@ -7,7 +7,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> usize {
+fn exercise1(input: &str) -> usize {
     let mut res: usize = 0;
     let grid: Grid = Grid::new(input);
 
@@ -19,7 +19,7 @@ fn exercise1(input: &String) -> usize {
     res
 }
 
-fn exercise2(input: &String) -> usize {
+fn exercise2(input: &str) -> usize {
     let mut res: usize = 0;
     let grid: Grid = Grid::new(input);
 
@@ -76,7 +76,7 @@ struct GridIterator<'a> {
 }
 
 impl Grid {
-    fn new(input: &String) -> Self {
+    fn new(input: &str) -> Self {
         let matrix: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
         let height = matrix.len();
         let width = matrix[0].len();

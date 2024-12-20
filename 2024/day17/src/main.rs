@@ -156,7 +156,7 @@ impl Computer {
 
     fn jnz(&mut self, operand: usize) {
         if self.reg_a != 0 {
-            self.ptr = operand as usize;
+            self.ptr = operand;
         }
     }
 
@@ -188,7 +188,7 @@ fn parse_numbers(s: &str) -> Vec<i64> {
     let mut current_number = String::new();
 
     for c in s.chars() {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             current_number.push(c);
         } else if !current_number.is_empty() {
             numbers.push(current_number.parse().unwrap());

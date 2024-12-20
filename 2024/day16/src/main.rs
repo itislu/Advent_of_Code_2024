@@ -20,7 +20,7 @@ fn exercise2(input: &str) -> usize {
     let best_paths = dijkstra_all(&map).expect("No path to the goal found!");
 
     print_map_with_path(&map, &best_paths);
-    best_paths.iter().count()
+    best_paths.len()
 }
 
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {

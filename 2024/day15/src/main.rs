@@ -213,8 +213,8 @@ impl Map {
     fn can_move(&self, pos: Position, direction: Direction) -> bool {
         use ObjectKind::*;
         match self.at(pos).kind {
-            Empty => return true,
-            Wall => return false,
+            Empty => true,
+            Wall => false,
             Box(Some(part)) => {
                 self.can_move(pos.to(direction), direction)
                     && (direction.is_horizontal()
@@ -231,8 +231,8 @@ impl Map {
             return false;
         }
         match self.at(pos).kind {
-            Empty => return true,
-            Wall => return false,
+            Empty => true,
+            Wall => false,
             Box(Some(part)) => {
                 let new_pos = pos.to(direction);
                 self.mv_object(new_pos, direction);
@@ -263,14 +263,12 @@ impl Map {
     }
 
     fn boxes(&self) -> impl Iterator<Item = &Object> {
-        self.grid
-            .iter()
-            .flatten()
-            .filter(|object| match object.kind {
-                ObjectKind::Box(None) => true,
-                ObjectKind::Box(Some(BoxPart::Left)) => true,
-                _ => false,
-            })
+        self.grid.iter().flatten().filter(|object| {
+            matches!(
+                object.kind,
+                ObjectKind::Box(None) | ObjectKind::Box(Some(BoxPart::Left))
+            )
+        })
     }
 
     fn at(&self, pos: Position) -> &Object {

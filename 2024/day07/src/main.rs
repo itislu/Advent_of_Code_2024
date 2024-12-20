@@ -12,7 +12,7 @@ How to get all permutations of what these 3 operators could be?
 Well, there are 2^3 permutations possible. By counting down from 2^3 it will get all the possible bit patterns lower than the original pattern.
 To read the bit pattern, just read all the bits of the punch card: a 1 means multiplication, a 0 addition.
 */
-fn exercise1(input: &String) -> i64 {
+fn exercise1(input: &str) -> i64 {
     let mut res: i64 = 0;
 
     for line in input.lines() {
@@ -26,7 +26,7 @@ fn exercise1(input: &String) -> i64 {
     res
 }
 
-fn exercise2(input: &String) -> i64 {
+fn exercise2(input: &str) -> i64 {
     let mut res: i64 = 0;
 
     for line in input.lines() {
@@ -44,7 +44,7 @@ fn test_punch_card(mask: usize, target: i64, numbers: &Vec<i64>) -> bool {
     let mut punch_card: usize = (mask + 1).pow(numbers.len() as u32 - 1);
 
     loop {
-        let operator = Operator::new(punch_card, mask, &numbers);
+        let operator = Operator::new(punch_card, mask, numbers);
         if operator.calculate() == target {
             return true;
         }
@@ -73,7 +73,7 @@ impl<'a> Operator<'a> {
     }
 
     fn calculate(&self) -> i64 {
-        if self.numbers.len() == 0 {
+        if self.numbers.is_empty() {
             return 0;
         }
         let mut res: i64 = self.numbers[0];
@@ -94,7 +94,7 @@ fn concat(a: i64, b: i64) -> i64 {
 }
 
 fn parse_target(line: &str) -> i64 {
-    line.split(':').nth(0).unwrap().parse().unwrap()
+    line.split(':').next().unwrap().parse().unwrap()
 }
 
 fn parse_numbers(line: &str) -> Vec<i64> {

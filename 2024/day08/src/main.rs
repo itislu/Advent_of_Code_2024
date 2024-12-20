@@ -112,10 +112,7 @@ impl Map {
             for (j, ch) in line.chars().enumerate() {
                 let point = Rc::new(RefCell::new(Point::new(i as i32, j as i32, ch)));
                 if ch != '.' {
-                    antennas
-                        .entry(ch)
-                        .or_insert(Vec::new())
-                        .push(Rc::clone(&point));
+                    antennas.entry(ch).or_default().push(Rc::clone(&point));
                 }
                 row.push(point);
             }
@@ -138,8 +135,8 @@ impl Map {
     }
 
     fn put_antinode(&mut self, point: &Point) -> bool {
-        if self.is_in(&point) && !self.get(&point).borrow().contains('#') {
-            self.get(&point).borrow_mut().data.push('#');
+        if self.is_in(point) && !self.get(point).borrow().contains('#') {
+            self.get(point).borrow_mut().data.push('#');
             true
         } else {
             false

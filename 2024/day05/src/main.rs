@@ -7,7 +7,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> usize {
+fn exercise1(input: &str) -> usize {
     let rules: Vec<(u32, u32)> = parse_rules(input);
     let updates: Vec<Vec<u32>> = parse_updates(input);
 
@@ -22,7 +22,7 @@ fn exercise1(input: &String) -> usize {
         .sum()
 }
 
-fn exercise2(input: &String) -> usize {
+fn exercise2(input: &str) -> usize {
     let rules: Vec<(u32, u32)> = parse_rules(input);
     let mut updates = parse_updates(input);
     let mut bad_updates: Vec<&mut Vec<u32>> = updates
@@ -43,11 +43,11 @@ fn exercise2(input: &String) -> usize {
         .sum()
 }
 
-fn is_correct_pair(n1: u32, n2: u32, rules: &Vec<(u32, u32)>) -> bool {
+fn is_correct_pair(n1: u32, n2: u32, rules: &[(u32, u32)]) -> bool {
     rules.iter().any(|&rule| rule.0 == n1 && rule.1 == n2)
 }
 
-fn cmp_pair(n1: u32, n2: u32, rules: &Vec<(u32, u32)>) -> Ordering {
+fn cmp_pair(n1: u32, n2: u32, rules: &[(u32, u32)]) -> Ordering {
     if is_correct_pair(n1, n2, rules) {
         Ordering::Less
     } else {
@@ -55,7 +55,7 @@ fn cmp_pair(n1: u32, n2: u32, rules: &Vec<(u32, u32)>) -> Ordering {
     }
 }
 
-fn parse_rules(input: &String) -> Vec<(u32, u32)> {
+fn parse_rules(input: &str) -> Vec<(u32, u32)> {
     input
         .lines()
         .map_while(|line| {
@@ -69,7 +69,7 @@ fn parse_rules(input: &String) -> Vec<(u32, u32)> {
         .collect()
 }
 
-fn parse_updates(input: &String) -> Vec<Vec<u32>> {
+fn parse_updates(input: &str) -> Vec<Vec<u32>> {
     if let Some(updates) = input.split("\n\n").nth(1) {
         updates
             .lines()

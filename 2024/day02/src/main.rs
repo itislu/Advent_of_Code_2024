@@ -6,7 +6,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> usize {
+fn exercise1(input: &str) -> usize {
     let mut res: usize = 0;
     for line in input.lines() {
         let numbers: Vec<i32> = line
@@ -21,7 +21,7 @@ fn exercise1(input: &String) -> usize {
     res
 }
 
-fn exercise2(input: &String) -> usize {
+fn exercise2(input: &str) -> usize {
     let mut res: usize = 0;
     for line in input.lines() {
         let numbers: Vec<i32> = line
@@ -44,7 +44,7 @@ fn exercise2(input: &String) -> usize {
     res
 }
 
-fn is_close(numbers: &Vec<i32>) -> bool {
+fn is_close(numbers: &[i32]) -> bool {
     for window in numbers.windows(2) {
         if (window[0] - window[1] < 0) != (numbers[0] - numbers[1] < 0)
             || window[0].abs_diff(window[1]) < 1

@@ -30,11 +30,11 @@ fn exercise2(input: &str) -> usize {
 
 fn hike(map: &mut Map, start: &Cell, from: &Cell) {
     for direction in Direction::iter() {
-        if let Some(to) = map.try_move(&from, direction) {
+        if let Some(to) = map.try_move(from, direction) {
             if to.value == 9 {
                 map.trails.push((start.pos, to.pos));
             } else {
-                hike(map, &start, &to.clone());
+                hike(map, start, &to.clone());
             }
         }
     }
@@ -75,7 +75,7 @@ impl std::fmt::Display for Position {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Cell {
     pos: Position,
     value: u32,

@@ -136,26 +136,24 @@ impl Region {
             let mut seen: HashSet<Position> = HashSet::from_iter(tiles.keys().cloned());
 
             for tile in tiles.values().map(|tile| tile.borrow()) {
-                if seen.remove(&tile.pos) {
-                    if Region::is_edge(&tile, direction, tiles, map) {
-                        sides += 1;
-                        // println!(
-                        //     "found new side for: {}, at: {}, direction: {}",
-                        //     tile.tile_type, tile.pos, direction
-                        // );
+                if seen.remove(&tile.pos) && Region::is_edge(&tile, direction, tiles, map) {
+                    sides += 1;
+                    // println!(
+                    //     "found new side for: {}, at: {}, direction: {}",
+                    //     tile.tile_type, tile.pos, direction
+                    // );
 
-                        for side_direction in direction.side_directions() {
-                            let mut cur = tile.clone();
+                    for side_direction in direction.side_directions() {
+                        let mut cur = tile.clone();
 
-                            while let Some(neighbour) = map.get_neighbour(&cur, side_direction) {
-                                let neighbour = neighbour.as_ref().borrow();
-                                if !Region::is_edge(&neighbour, direction, tiles, map)
-                                    || !seen.remove(&neighbour.pos)
-                                {
-                                    break;
-                                }
-                                cur = neighbour.clone();
+                        while let Some(neighbour) = map.get_neighbour(&cur, side_direction) {
+                            let neighbour = neighbour.as_ref().borrow();
+                            if !Region::is_edge(&neighbour, direction, tiles, map)
+                                || !seen.remove(&neighbour.pos)
+                            {
+                                break;
                             }
+                            cur = neighbour.clone();
                         }
                     }
                 }
@@ -170,14 +168,9 @@ impl Region {
         tiles: &HashMap<Position, Rc<RefCell<Tile>>>,
         map: &Map,
     ) -> bool {
-        let potential_neighbour = map.get_neighbour(&tile, direction);
-        if potential_neighbour.is_none()
+        let potential_neighbour = map.get_neighbour(tile, direction);
+        potential_neighbour.is_none()
             || !tiles.contains_key(&potential_neighbour.unwrap().borrow().pos)
-        {
-            true
-        } else {
-            false
-        }
     }
 
     fn collect(
@@ -189,7 +182,7 @@ impl Region {
             let tile = tile_rc.as_ref().borrow();
             if tiles_without_regions.remove(&tile.pos) {
                 let mut region_tiles: HashMap<Position, Rc<RefCell<Tile>>> = HashMap::new();
-                region_tiles.insert(tile.pos, Rc::clone(&tile_rc));
+                region_tiles.insert(tile.pos, Rc::clone(tile_rc));
 
                 for neighbour_rc in map.get_neighbours(&tile) {
                     let neighbour = neighbour_rc.as_ref().borrow();

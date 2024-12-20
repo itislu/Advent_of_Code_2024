@@ -7,7 +7,7 @@ fn main() {
     println!("exercise 2: {}", exercise2(&input));
 }
 
-fn exercise1(input: &String) -> u64 {
+fn exercise1(input: &str) -> u64 {
     calculate(input)
 }
 

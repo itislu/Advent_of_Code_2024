@@ -6,7 +6,7 @@ fn main() {
     println!("similarity score 2: {}", similarity_score2(&input));
 }
 
-fn similarity_score1(input: &String) -> usize {
+fn similarity_score1(input: &str) -> usize {
     let (mut list1, mut list2) = create_lists(input);
     list1.sort();
     list2.sort();
@@ -18,7 +18,7 @@ fn similarity_score1(input: &String) -> usize {
     res
 }
 
-fn similarity_score2(input: &String) -> usize {
+fn similarity_score2(input: &str) -> usize {
     let (list1, list2) = create_lists(input);
 
     let mut res = 0;
@@ -28,7 +28,7 @@ fn similarity_score2(input: &String) -> usize {
     res
 }
 
-fn create_lists(input: &String) -> (Vec<usize>, Vec<usize>) {
+fn create_lists(input: &str) -> (Vec<usize>, Vec<usize>) {
     let mut list1: Vec<usize> = Vec::new();
     let mut list2: Vec<usize> = Vec::new();
 

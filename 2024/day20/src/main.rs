@@ -190,11 +190,11 @@ impl RaceTrack {
     }
 
     fn at(&self, pos: &Position) -> Option<&TrackTile> {
-        self.track.get(&pos)
+        self.track.get(pos)
     }
 
     fn at_mut(&mut self, pos: &Position) -> Option<&mut TrackTile> {
-        self.track.get_mut(&pos)
+        self.track.get_mut(pos)
     }
 
     fn iter(&self) -> impl Iterator<Item = &TrackTile> {
@@ -262,7 +262,7 @@ impl fmt::Display for RaceTrack {
                     write!(f, "#")?;
                 }
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
         Ok(())
     }
