@@ -23,19 +23,6 @@ fn exercise2(input: &str) -> usize {
     best_paths.iter().count()
 }
 
-fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
-    for row in &map.grid {
-        for tile in row {
-            if let Some(visit) = path.get(&tile.pos) {
-                print!("{}", visit)
-            } else {
-                print!("{}", tile);
-            }
-        }
-        println!();
-    }
-}
-
 fn dijkstra(map: &Map) -> Option<HashMap<Position, Visit>> {
     let mut queue: BinaryHeap<Visit> = BinaryHeap::new();
     let mut visited: HashMap<State, Visit> = HashMap::new();
@@ -112,6 +99,19 @@ fn collect_all_paths(visit: &Visit, visited: &HashMap<State, Visit>) -> HashMap<
         }
     }
     best_paths
+}
+
+fn print_map_with_path(map: &Map, path: &HashMap<Position, Visit>) {
+    for row in &map.grid {
+        for tile in row {
+            if let Some(visit) = path.get(&tile.pos) {
+                print!("{}", visit)
+            } else {
+                print!("{}", tile);
+            }
+        }
+        println!();
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
