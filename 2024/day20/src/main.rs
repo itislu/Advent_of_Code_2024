@@ -1,7 +1,7 @@
 use core::fmt;
 use itertools::Itertools;
-use std::{collections::HashMap, iter, thread, time::Duration};
-use utils::input;
+use std::{collections::HashMap, iter};
+use utils::{colors, input};
 
 fn main() {
     let input = input::read_input();
@@ -15,6 +15,9 @@ fn exercise(input: &str, max_cheat: usize, min_gain: usize) -> usize {
     let mut first_time = true;
 
     for cur_tile in racetrack.iter() {
+        #[cfg(debug_assertions)]
+        let mut cheat_tiles: Vec<&TrackTile> = Vec::new();
+
         for cheat_tile in cur_tile
             .pos
             .circular_neighbors(max_cheat)
@@ -26,13 +29,14 @@ fn exercise(input: &str, max_cheat: usize, min_gain: usize) -> usize {
                     >= min_gain as i64
             })
         {
-            #[cfg(debug_assertions)]
-            {
-                print_track_with_cheat(&racetrack, cur_tile, cheat_tile, first_time);
-                first_time = false;
-                thread::sleep(Duration::from_millis(10));
-            }
             cheats += 1;
+            #[cfg(debug_assertions)]
+            cheat_tiles.push(cheat_tile);
+        }
+        #[cfg(debug_assertions)]
+        {
+            print_track_with_cheat_tiles(&racetrack, cur_tile, &cheat_tiles, first_time);
+            first_time = false;
         }
     }
     cheats
@@ -179,31 +183,36 @@ impl RaceTrack {
     }
 }
 
-fn print_track_with_cheat(
+fn print_track_with_cheat_tiles(
     racetrack: &RaceTrack,
     cur_tile: &TrackTile,
-    cheat_tile: &TrackTile,
+    cheat_tiles: &Vec<&TrackTile>,
     first_time: bool,
 ) {
-    let mut buffer: Vec<Vec<char>> = vec![vec![' '; racetrack.width]; racetrack.height];
+    let mut buffer: Vec<Vec<String>> =
+        vec![vec![" ".to_string(); racetrack.width]; racetrack.height];
 
     for row in 0..racetrack.height {
         for col in 0..racetrack.width {
             if let Some(tile) = racetrack.track.get(&Position::new(row, col)) {
                 if tile.pos == racetrack.start {
-                    buffer[row][col] = 'S';
+                    buffer[row][col] = colors::BOLD_BRIGHT_CYAN.to_string() + "S" + colors::RESET;
                 } else if tile.pos == racetrack.finish {
-                    buffer[row][col] = 'E';
+                    buffer[row][col] = colors::BOLD_BRIGHT_CYAN.to_string() + "E" + colors::RESET;
                 } else {
-                    buffer[row][col] = '.';
+                    buffer[row][col] = ".".to_string();
                 }
             } else {
-                buffer[row][col] = '#';
+                buffer[row][col] = "#".to_string();
             }
         }
     }
-    buffer[cur_tile.pos.row][cur_tile.pos.col] = 'I';
-    buffer[cheat_tile.pos.row][cheat_tile.pos.col] = 'O';
+    buffer[cur_tile.pos.row][cur_tile.pos.col] =
+        colors::BOLD_BRIGHT_YELLOW.to_string() + "I" + colors::RESET;
+    for cheat_tile in cheat_tiles {
+        buffer[cheat_tile.pos.row][cheat_tile.pos.col] =
+            colors::BOLD_BRIGHT_GREEN.to_string() + "O" + colors::RESET;
+    }
 
     if !first_time {
         print!("\x1B[{}A", racetrack.height);
@@ -212,7 +221,7 @@ fn print_track_with_cheat(
         "{}",
         buffer
             .iter()
-            .map(|row| row.iter().collect::<String>())
+            .map(|row| row.join(""))
             .collect::<Vec<String>>()
             .join("\n")
     );
