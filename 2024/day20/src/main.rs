@@ -1,10 +1,12 @@
 use core::fmt;
+use itertools::Itertools;
 use std::{collections::HashMap, iter, thread, time::Duration};
 use utils::input;
 
 fn main() {
     let input = input::read_input();
     println!("exercise 1: {}", exercise1(&input, 100));
+    println!("exercise 2: {}", exercise2(&input, 100));
 }
 
 fn exercise1(input: &str, min_cheat: usize) -> usize {
@@ -15,12 +17,6 @@ fn exercise1(input: &str, min_cheat: usize) -> usize {
     println!("{}", racetrack);
 
     for cur_tile in racetrack.iter() {
-        // cheats += cur_tile
-        //     .pos
-        //     .distant_neighbors(2)
-        //     .filter_map(|neighbor| racetrack.at(&neighbor))
-        //     .filter(|cheat_tile| cheat_tile.time - cur_tile.time + 2 >= min_cheat as i64)
-        //     .count();
         for cheat_tile in cur_tile
             .pos
             .distant_neighbors(2)
@@ -39,7 +35,49 @@ fn exercise1(input: &str, min_cheat: usize) -> usize {
     cheats
 }
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy)]
+fn exercise2(input: &str, min_cheat: usize) -> usize {
+    const MAX_CHEAT: usize = 20;
+    let racetrack = RaceTrack::new(input);
+    let mut cheats = 0;
+    let mut first_time = true;
+
+    println!("{}", racetrack);
+
+    for cur_tile in racetrack.iter() {
+        for cheat_tile in cur_tile
+            .pos
+            .circular_neighbors(MAX_CHEAT)
+            .filter_map(|neighbor| racetrack.at(&neighbor))
+            .filter(|cheat_tile| {
+                cheat_tile.time
+                    - cur_tile.time
+                    - cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
+                    >= min_cheat as i64
+            })
+        {
+            // #[cfg(debug_assertions)]
+            // {
+            //     print_track_with_cheat(&racetrack, cur_tile, cheat_tile, first_time);
+            //     println!(
+            //         "manhattan distance: {}",
+            //         cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
+            //     );
+            //     println!(
+            //         "saved: {}",
+            //         cheat_tile.time
+            //             - cur_tile.time
+            //             - cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
+            //     );
+            //     first_time = false;
+            //     thread::sleep(Duration::from_millis(10));
+            // }
+            cheats += 1;
+        }
+    }
+    cheats
+}
+
+#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 struct Position {
     row: usize,
     col: usize,
@@ -68,8 +106,25 @@ impl Position {
 
         [up, down, right, left].into_iter().flatten()
     }
+
+    fn circular_neighbors(&self, distance: usize) -> impl Iterator<Item = Self> + '_ {
+        itertools::repeat_n(-(distance as isize)..=distance as isize, 2)
+            .multi_cartesian_product()
+            .filter(move |diff| isize::abs(diff[0]) + isize::abs(diff[1]) <= distance as isize)
+            .filter_map(|diff| {
+                Some(Self::new(
+                    self.row.checked_add_signed(diff[0])?,
+                    self.col.checked_add_signed(diff[1])?,
+                ))
+            })
+    }
+
+    fn manhattan_distance(&self, other: Self) -> usize {
+        self.row.abs_diff(other.row) + self.col.abs_diff(other.col)
+    }
 }
 
+#[derive(Debug)]
 struct TrackTile {
     pos: Position,
     time: i64,
@@ -98,7 +153,7 @@ impl RaceTrack {
     fn new(input: &str) -> Self {
         let mut track: HashMap<Position, TrackTile> = HashMap::new();
         let mut start_opt: Option<Position> = None;
-        let mut end_opt: Option<Position> = None;
+        let mut finish_opt: Option<Position> = None;
 
         for (row, line) in input.lines().enumerate() {
             for (col, c) in line.chars().enumerate() {
@@ -108,7 +163,7 @@ impl RaceTrack {
                         track.insert(Position::new(row, col), TrackTile::new(row, col));
                     }
                     'E' => {
-                        end_opt = Some(Position::new(row, col));
+                        finish_opt = Some(Position::new(row, col));
                         track.insert(Position::new(row, col), TrackTile::new(row, col));
                     }
                     '.' => {
@@ -121,7 +176,7 @@ impl RaceTrack {
         let mut racetrack = Self {
             track,
             start: start_opt.expect("No start tile found!"),
-            finish: end_opt.expect("No end tile found!"),
+            finish: finish_opt.expect("No end tile found!"),
             height: input.lines().count(),
             width: input.find('\n').unwrap(),
         };
@@ -186,10 +241,8 @@ fn print_track_with_cheat(
             }
         }
     }
-    buffer[cur_tile.pos.row][cur_tile.pos.col] = '0';
-    buffer[(cur_tile.pos.row + cheat_tile.pos.row) / 2]
-        [(cur_tile.pos.col + cheat_tile.pos.col) / 2] = '1';
-    buffer[cheat_tile.pos.row][cheat_tile.pos.col] = '2';
+    buffer[cur_tile.pos.row][cur_tile.pos.col] = 'I';
+    buffer[cheat_tile.pos.row][cheat_tile.pos.col] = 'O';
 
     // if !first_time {
     //     print!("\x1B[{}A", racetrack.height);
@@ -305,5 +358,103 @@ mod test {
         let input = input::read_example();
         let res = exercise1(&input, 64);
         assert_eq!(res, 1);
+    }
+
+    #[test]
+    fn test_min50_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 50);
+        assert_eq!(res, 285);
+    }
+
+    #[test]
+    fn test_min52_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 52);
+        assert_eq!(res, 253);
+    }
+
+    #[test]
+    fn test_min54_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 54);
+        assert_eq!(res, 222);
+    }
+
+    #[test]
+    fn test_min56_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 56);
+        assert_eq!(res, 193);
+    }
+
+    #[test]
+    fn test_min58_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 58);
+        assert_eq!(res, 154);
+    }
+
+    #[test]
+    fn test_min60_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 60);
+        assert_eq!(res, 129);
+    }
+
+    #[test]
+    fn test_min62_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 62);
+        assert_eq!(res, 106);
+    }
+
+    #[test]
+    fn test_min64_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 64);
+        assert_eq!(res, 86);
+    }
+
+    #[test]
+    fn test_min66_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 66);
+        assert_eq!(res, 67);
+    }
+
+    #[test]
+    fn test_min68_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 68);
+        assert_eq!(res, 55);
+    }
+
+    #[test]
+    fn test_min70_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 70);
+        assert_eq!(res, 41);
+    }
+
+    #[test]
+    fn test_min72_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 72);
+        assert_eq!(res, 29);
+    }
+
+    #[test]
+    fn test_min74_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 74);
+        assert_eq!(res, 7);
+    }
+
+    #[test]
+    fn test_min76_ex2() {
+        let input = input::read_example();
+        let res = exercise2(&input, 76);
+        assert_eq!(res, 3);
     }
 }
