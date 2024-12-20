@@ -81,9 +81,7 @@ fn count_possible<'a>(
 
     for a in available {
         if let Some(substr) = wanted.strip_prefix(a) {
-            let count = count_possible(substr, available, cache);
-            cache.insert(wanted, count);
-            possible += count;
+            possible += count_possible(substr, available, cache);
         }
     }
     cache.insert(wanted, possible);
