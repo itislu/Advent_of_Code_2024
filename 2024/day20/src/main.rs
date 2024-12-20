@@ -5,72 +5,33 @@ use utils::input;
 
 fn main() {
     let input = input::read_input();
-    println!("exercise 1: {}", exercise1(&input, 100));
-    println!("exercise 2: {}", exercise2(&input, 100));
+    println!("exercise 1: {}", exercise(&input, 2, 100));
+    println!("exercise 2: {}", exercise(&input, 20, 100));
 }
 
-fn exercise1(input: &str, min_cheat: usize) -> usize {
+fn exercise(input: &str, max_cheat: usize, min_gain: usize) -> usize {
     let racetrack = RaceTrack::new(input);
     let mut cheats = 0;
     let mut first_time = true;
 
-    println!("{}", racetrack);
-
     for cur_tile in racetrack.iter() {
         for cheat_tile in cur_tile
             .pos
-            .distant_neighbors(2)
-            .filter_map(|neighbor| racetrack.at(&neighbor))
-            .filter(|cheat_tile| cheat_tile.time - cur_tile.time - 2 >= min_cheat as i64)
-        {
-            // #[cfg(debug_assertions)]
-            // {
-            //     print_track_with_cheat(&racetrack, cur_tile, cheat_tile, first_time);
-            //     first_time = false;
-            //     thread::sleep(Duration::from_millis(10));
-            // }
-            cheats += 1;
-        }
-    }
-    cheats
-}
-
-fn exercise2(input: &str, min_cheat: usize) -> usize {
-    const MAX_CHEAT: usize = 20;
-    let racetrack = RaceTrack::new(input);
-    let mut cheats = 0;
-    let mut first_time = true;
-
-    println!("{}", racetrack);
-
-    for cur_tile in racetrack.iter() {
-        for cheat_tile in cur_tile
-            .pos
-            .circular_neighbors(MAX_CHEAT)
+            .circular_neighbors(max_cheat)
             .filter_map(|neighbor| racetrack.at(&neighbor))
             .filter(|cheat_tile| {
                 cheat_tile.time
                     - cur_tile.time
                     - cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
-                    >= min_cheat as i64
+                    >= min_gain as i64
             })
         {
-            // #[cfg(debug_assertions)]
-            // {
-            //     print_track_with_cheat(&racetrack, cur_tile, cheat_tile, first_time);
-            //     println!(
-            //         "manhattan distance: {}",
-            //         cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
-            //     );
-            //     println!(
-            //         "saved: {}",
-            //         cheat_tile.time
-            //             - cur_tile.time
-            //             - cur_tile.pos.manhattan_distance(cheat_tile.pos) as i64
-            //     );
-            //     first_time = false;
-            //     thread::sleep(Duration::from_millis(10));
-            // }
+            #[cfg(debug_assertions)]
+            {
+                print_track_with_cheat(&racetrack, cur_tile, cheat_tile, first_time);
+                first_time = false;
+                thread::sleep(Duration::from_millis(10));
+            }
             cheats += 1;
         }
     }
@@ -244,9 +205,9 @@ fn print_track_with_cheat(
     buffer[cur_tile.pos.row][cur_tile.pos.col] = 'I';
     buffer[cheat_tile.pos.row][cheat_tile.pos.col] = 'O';
 
-    // if !first_time {
-    //     print!("\x1B[{}A", racetrack.height);
-    // }
+    if !first_time {
+        print!("\x1B[{}A", racetrack.height);
+    }
     println!(
         "{}",
         buffer
@@ -286,175 +247,175 @@ mod test {
     #[test]
     fn test_min2_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 2);
+        let res = exercise(&input, 2, 2);
         assert_eq!(res, 44);
     }
 
     #[test]
     fn test_min4_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 4);
+        let res = exercise(&input, 2, 4);
         assert_eq!(res, 30);
     }
 
     #[test]
     fn test_min6_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 6);
+        let res = exercise(&input, 2, 6);
         assert_eq!(res, 16);
     }
 
     #[test]
     fn test_min8_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 8);
+        let res = exercise(&input, 2, 8);
         assert_eq!(res, 14);
     }
 
     #[test]
     fn test_min10_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 10);
+        let res = exercise(&input, 2, 10);
         assert_eq!(res, 10);
     }
 
     #[test]
     fn test_min12_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 12);
+        let res = exercise(&input, 2, 12);
         assert_eq!(res, 8);
     }
 
     #[test]
     fn test_min20_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 20);
+        let res = exercise(&input, 2, 20);
         assert_eq!(res, 5);
     }
 
     #[test]
     fn test_min36_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 36);
+        let res = exercise(&input, 2, 36);
         assert_eq!(res, 4);
     }
 
     #[test]
     fn test_min38_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 38);
+        let res = exercise(&input, 2, 38);
         assert_eq!(res, 3);
     }
 
     #[test]
     fn test_min40_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 40);
+        let res = exercise(&input, 2, 40);
         assert_eq!(res, 2);
     }
 
     #[test]
     fn test_min64_ex1() {
         let input = input::read_example();
-        let res = exercise1(&input, 64);
+        let res = exercise(&input, 2, 64);
         assert_eq!(res, 1);
     }
 
     #[test]
     fn test_min50_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 50);
+        let res = exercise(&input, 20, 50);
         assert_eq!(res, 285);
     }
 
     #[test]
     fn test_min52_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 52);
+        let res = exercise(&input, 20, 52);
         assert_eq!(res, 253);
     }
 
     #[test]
     fn test_min54_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 54);
+        let res = exercise(&input, 20, 54);
         assert_eq!(res, 222);
     }
 
     #[test]
     fn test_min56_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 56);
+        let res = exercise(&input, 20, 56);
         assert_eq!(res, 193);
     }
 
     #[test]
     fn test_min58_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 58);
+        let res = exercise(&input, 20, 58);
         assert_eq!(res, 154);
     }
 
     #[test]
     fn test_min60_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 60);
+        let res = exercise(&input, 20, 60);
         assert_eq!(res, 129);
     }
 
     #[test]
     fn test_min62_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 62);
+        let res = exercise(&input, 20, 62);
         assert_eq!(res, 106);
     }
 
     #[test]
     fn test_min64_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 64);
+        let res = exercise(&input, 20, 64);
         assert_eq!(res, 86);
     }
 
     #[test]
     fn test_min66_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 66);
+        let res = exercise(&input, 20, 66);
         assert_eq!(res, 67);
     }
 
     #[test]
     fn test_min68_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 68);
+        let res = exercise(&input, 20, 68);
         assert_eq!(res, 55);
     }
 
     #[test]
     fn test_min70_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 70);
+        let res = exercise(&input, 20, 70);
         assert_eq!(res, 41);
     }
 
     #[test]
     fn test_min72_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 72);
+        let res = exercise(&input, 20, 72);
         assert_eq!(res, 29);
     }
 
     #[test]
     fn test_min74_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 74);
+        let res = exercise(&input, 20, 74);
         assert_eq!(res, 7);
     }
 
     #[test]
     fn test_min76_ex2() {
         let input = input::read_example();
-        let res = exercise2(&input, 76);
+        let res = exercise(&input, 20, 76);
         assert_eq!(res, 3);
     }
 }
